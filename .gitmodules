@@ -1,3 +1,7 @@
 [submodule "firmware/components/esp-mdf"]
 	path = firmware/components/esp-mdf
 	url = https://github.com/espressif/esp-mdf.git
+[submodule "firmware/components/qpc"]
+	path = firmware/components/qpc
+	url = https://github.com/sicrisembay/qpc.git
+	branch = esp32_support
