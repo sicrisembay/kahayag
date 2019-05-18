@@ -2,7 +2,7 @@
 <model version="4.5.0" links="0">
  <framework name="qpc"/>
  <package name="components" stereotype="0x02">
-  <package file="./components/test/test.qmp"/>
+  <package file="components/SystemManagement/SystemManagement.qmp"/>
  </package>
  <directory name=".">
   <file name="signalList.h">
@@ -35,7 +35,7 @@ enum testSignal {
 enum task_priority {
     PRIORITY_QSPY_TX = tskIDLE_PRIORITY + 1,
     PRIORITY_QSPY_RX,
-    PRIORITY_TEST,
+    PRIORITY_SYS_MNGT,
 
     PRIORITY_MAX
 };

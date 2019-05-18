@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package name="SystemManagement" stereotype="0x02">
+ <class name="SysMngt" superclass="qpc::QActive">
+  <statechart properties="0x00">
+   <initial target="../1">
+    <initial_glyph conn="14,8,5,0,12,4">
+     <action box="0,-2,10,2"/>
+    </initial_glyph>
+   </initial>
+   <state name="TOP">
+    <entry>printf(&quot;CPU%d: Hello World!\n&quot;, xPortGetCoreID());</entry>
+    <state_glyph node="14,12,40,21">
+     <entry box="1,2,6,2"/>
+    </state_glyph>
+   </state>
+   <state_diagram size="80,50"/>
+  </statechart>
+ </class>
+ <attribute name="AO_SysMngt" type="QActive * const" visibility="0x00" properties="0x00">
+  <documentation>/** Opaque pointer to SysMngt AO */</documentation>
+  <code>= &amp;(l_SysMngt.super);</code>
+ </attribute>
+ <operation name="SysMgnt_ctor" type="void" visibility="0x00" properties="0x00">
+  <code>static uint8_t bInitDone = (uint8_t)0;
+char taskName[16];
+SysMngt *me;
+
+if(bInitDone == (uint8_t)0) {
+    me = &amp;l_SysMngt;
+    /* Call constructor */
+    QActive_ctor(&amp;me-&gt;super, Q_STATE_CAST(&amp;SysMngt_initial));
+    /* Call orthogonal Component constructor */
+
+    /* Call Timer Constructor */
+
+    /* Initialize members */
+
+    /* Start active object */
+    sprintf(taskName, &quot;AO_SYS_MNGT&quot;);
+    QActive_setAttr(AO_SysMngt, TASK_NAME_ATTR, taskName);
+    QACTIVE_START(
+        AO_SysMngt,
+        PRIORITY_SYS_MNGT,
+        l_SysMngtQSto,
+        Q_DIM(l_SysMngtQSto),
+        sysMngtStack,
+        sizeof(sysMngtStack),
+        (QEvt *)0);
+
+    bInitDone = (uint8_t)1;
+}</code>
+ </operation>
+ <directory name=".">
+  <file name="SysMngt.h">
+   <text>#ifndef SYS_MNGT_H
+#define SYS_MNGT_H
+
+$declare(components::SystemManagement::AO_SysMngt)
+
+$declare(components::SystemManagement::SysMgnt_ctor)
+
+#endif /* SYS_MNGT_H */</text>
+  </file>
+  <file name="SysMngt.c">
+   <text>#include &quot;qpc.h&quot;
+#include &quot;signalList.h&quot;
+#include &quot;priorityList.h&quot;
+#include &quot;SysMngt.h&quot;
+
+Q_DEFINE_THIS_FILE
+
+$declare(components::SystemManagement::SysMngt)
+
+/* Local Object */
+static SysMngt l_SysMngt;
+/* FreeRTOS stack for AO */
+static StackType_t sysMngtStack[1024];
+/* AO Queue */
+QEvt const * l_SysMngtQSto[64];
+
+$define(components::SystemManagement::AO_SysMngt)
+
+$define(components::SystemManagement::SysMgnt_ctor)
+
+$define(components::SystemManagement::SysMngt)</text>
+  </file>
+ </directory>
+</package>

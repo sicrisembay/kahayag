@@ -8,6 +8,7 @@
 #include "qs.h"
 #endif /** Q_SPY */
 #include "signalList.h"
+#include "SysMngt.h"
 
 /*
  * small size pool.
@@ -75,7 +76,7 @@ void app_main()
     QF_psInit(subscrSto, Q_DIM(subscrSto));
 
     /* Call Active Object Constructors */
-//    TEST_ctor();
+    SysMgnt_ctor();
 
     /* Run QF */
     QF_run();
