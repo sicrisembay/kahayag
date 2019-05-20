@@ -19,6 +19,16 @@
 #ifndef SYS_MNGT_H
 #define SYS_MNGT_H
 
+#include "InOut.h"
+
+#define SYS_MNGT_TICK_INTERVAL_MS        (10)
+#define SYS_MNGT_USER_BTN_ID             (INPUT_ID_ONE)
+
+/** SRS-0011 */
+#define SYS_MNGT_PROV_BTN_DLY_MS         (2000)
+#define SYS_MNGT_PROV_BTN_TICK_INT       (SYS_MNGT_PROV_BTN_DLY_MS / SYS_MNGT_TICK_INTERVAL_MS)
+
+
 /*$declare${components::SystemManagement::AO_SysMngt} vvvvvvvvvvvvvvvvvvvvvv*/
 
 /** Opaque pointer to SysMngt AO */

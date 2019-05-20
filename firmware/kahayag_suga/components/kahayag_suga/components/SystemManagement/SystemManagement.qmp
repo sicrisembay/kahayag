@@ -1,30 +1,141 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <package name="SystemManagement" stereotype="0x02">
  <class name="SysMngt" superclass="qpc::QActive">
+  <attribute name="tickTimeEvt" type="QTimeEvt" visibility="0x02" properties="0x00"/>
+  <attribute name="userBtnId" type="INPUT_ID_T" visibility="0x02" properties="0x00"/>
+  <attribute name="isCredentialValid" type="bool" visibility="0x02" properties="0x00"/>
   <statechart properties="0x01">
    <initial target="../1">
-    <action>QActive_subscribe(me, INPUT_POSITIVE_EDGE_SIG);
-QActive_subscribe(me, INPUT_NEGATIVE_EDGE_SIG);</action>
-    <initial_glyph conn="14,8,5,0,12,4">
+    <initial_glyph conn="3,3,5,0,18,3">
      <action box="0,-2,10,2"/>
     </initial_glyph>
    </initial>
    <state name="TOP">
-    <tran trig="INPUT_POSITIVE_EDGE">
-     <action>printf(&quot;INPUT_POSITIVE_EDGE Event from %d\n&quot;, Q_EVT_CAST(InputEvt)-&gt;id);</action>
-     <tran_glyph conn="14,20,3,-1,21">
-      <action box="0,-2,19,2"/>
+    <entry>QActive_subscribe((QActive *)me, INPUT_POSITIVE_EDGE_SIG);
+QActive_subscribe((QActive *)me, INPUT_NEGATIVE_EDGE_SIG);
+
+QTimeEvt_armX(&amp;me-&gt;tickTimeEvt, SYS_MNGT_TICK_INTERVAL_MS, SYS_MNGT_TICK_INTERVAL_MS);</entry>
+    <exit>QActive_unsubscribe((QActive *)me, INPUT_POSITIVE_EDGE_SIG);
+QActive_unsubscribe((QActive *)me, INPUT_NEGATIVE_EDGE_SIG);
+
+QTimeEvt_disarm(&amp;me-&gt;tickTimeEvt);</exit>
+    <initial target="../2">
+     <initial_glyph conn="5,22,5,0,6,3">
+      <action box="0,-2,10,2"/>
+     </initial_glyph>
+    </initial>
+    <tran trig="TICK, INPUT_POSITIVE_EDGE, INPUT_NEGATIVE_EDGE">
+     <tran_glyph conn="2,14,3,-1,22">
+      <action box="0,-2,21,6"/>
      </tran_glyph>
     </tran>
-    <tran trig="INPUT_NEGATIVE_EDGE">
-     <action>printf(&quot;INPUT_NEGATIVE_EDGE Event from %d\n&quot;, Q_EVT_CAST(InputEvt)-&gt;id);</action>
-     <tran_glyph conn="14,24,3,-1,21">
-      <action box="0,-2,19,2"/>
-     </tran_glyph>
-    </tran>
-    <state_glyph node="14,12,40,21"/>
+    <state name="BOOT_CHECK">
+     <entry>printf(&quot;BOOT_CHECK: entry\n&quot;);</entry>
+     <exit>printf(&quot;BOOT_CHECK: exit\n&quot;);</exit>
+     <tran trig="TICK">
+      <choice target="../../2">
+       <guard brief="userBtnPressed">false == InOut_GetInputState(me-&gt;userBtnId)</guard>
+       <choice_glyph conn="13,39,5,3,15">
+        <action box="1,-2,14,2"/>
+       </choice_glyph>
+      </choice>
+      <choice target="../../3">
+       <guard>else</guard>
+       <choice_glyph conn="13,39,4,3,18,15">
+        <action box="2,16,10,2"/>
+       </choice_glyph>
+      </choice>
+      <tran_glyph conn="5,39,3,-1,8">
+       <action box="0,-2,10,2"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="INPUT_POSITIVE_EDGE, INPUT_NEGATIVE_EDGE">
+      <tran_glyph conn="5,32,3,-1,22">
+       <action box="0,-2,21,4"/>
+      </tran_glyph>
+     </tran>
+     <state name="BOOT_BTN_CHECK">
+      <entry>QTimeEvt_disarm(&amp;me-&gt;tickTimeEvt);
+QTimeEvt_armX(&amp;me-&gt;tickTimeEvt, SYS_MNGT_PROV_BTN_TICK_INT, SYS_MNGT_PROV_BTN_TICK_INT);
+
+printf(&quot;BOOT_BTN_CHECK: entry\n&quot;);</entry>
+      <exit>QTimeEvt_disarm(&amp;me-&gt;tickTimeEvt);
+QTimeEvt_armX(&amp;me-&gt;tickTimeEvt, SYS_MNGT_TICK_INTERVAL_MS, SYS_MNGT_TICK_INTERVAL_MS);
+
+printf(&quot;BOOT_BTN_CHECK: exit\n&quot;);</exit>
+      <tran trig="TICK" target="../../../3">
+       <tran_glyph conn="28,45,3,1,59,54,-10">
+        <action box="0,-2,10,2"/>
+       </tran_glyph>
+      </tran>
+      <tran trig="INPUT_POSITIVE_EDGE" target="../../3">
+       <tran_glyph conn="28,48,3,1,37,10,-3">
+        <action box="0,-2,19,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="28,36,34,15">
+       <entry box="1,2,6,2"/>
+       <exit box="1,4,6,2"/>
+      </state_glyph>
+     </state>
+     <state name="BOOT_CRED_CHECK">
+      <entry brief="Check Credential">/* Check Credential */
+/// TODO
+
+// mock
+me-&gt;isCredentialValid = true;
+
+printf(&quot;BOOT_CRED_CHECK: entry\n&quot;);</entry>
+      <exit>printf(&quot;BOOT_CRED_CHECK: exit\n&quot;);</exit>
+      <tran trig="TICK">
+       <choice target="../../../../3">
+        <guard brief="InvalidCredential">!(me-&gt;isCredentialValid)</guard>
+        <choice_glyph conn="36,62,5,1,50,36,-9">
+         <action box="2,-2,14,2"/>
+        </choice_glyph>
+       </choice>
+       <choice target="../../../../4">
+        <guard>else</guard>
+        <choice_glyph conn="36,62,4,1,3,45,16,-4">
+         <action box="2,1,10,2"/>
+        </choice_glyph>
+       </choice>
+       <tran_glyph conn="28,62,3,-1,8">
+        <action box="0,-2,10,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="28,53,34,14">
+       <entry box="1,2,19,2"/>
+       <exit box="1,4,6,2"/>
+      </state_glyph>
+     </state>
+     <state_glyph node="5,25,72,46">
+      <entry box="1,2,6,2"/>
+      <exit box="1,4,6,2"/>
+     </state_glyph>
+    </state>
+    <state name="PROVISION">
+     <entry>printf(&quot;PROVISION: entry\n&quot;);</entry>
+     <exit>printf(&quot;PROVISION: exit\n&quot;);</exit>
+     <state_glyph node="5,95,72,16">
+      <entry box="1,2,6,2"/>
+      <exit box="1,4,6,2"/>
+     </state_glyph>
+    </state>
+    <state name="NORMAL">
+     <entry>printf(&quot;NORMAL: entry\n&quot;);</entry>
+     <exit>printf(&quot;NORMAL: exit\n&quot;);</exit>
+     <state_glyph node="5,76,72,16">
+      <entry box="1,2,6,2"/>
+      <exit box="1,4,6,2"/>
+     </state_glyph>
+    </state>
+    <state_glyph node="2,6,89,109">
+     <entry box="1,2,6,2"/>
+     <exit box="1,4,6,2"/>
+    </state_glyph>
    </state>
-   <state_diagram size="80,50"/>
+   <state_diagram size="96,136"/>
   </statechart>
  </class>
  <attribute name="AO_SysMngt" type="QActive * const" visibility="0x00" properties="0x00">
@@ -43,8 +154,10 @@ if(bInitDone == (uint8_t)0) {
     /* Call orthogonal Component constructor */
 
     /* Call Timer Constructor */
+    QTimeEvt_ctorX(&amp;me-&gt;tickTimeEvt,  &amp;me-&gt;super, TICK_SIG,  0U);
 
     /* Initialize members */
+    me-&gt;userBtnId = SYS_MNGT_USER_BTN_ID;
 
     /* Start active object */
     sprintf(taskName, &quot;AO_SYS_MNGT&quot;);
@@ -65,6 +178,16 @@ if(bInitDone == (uint8_t)0) {
   <file name="SysMngt.h">
    <text>#ifndef SYS_MNGT_H
 #define SYS_MNGT_H
+
+#include &quot;InOut.h&quot;
+
+#define SYS_MNGT_TICK_INTERVAL_MS        (10)
+#define SYS_MNGT_USER_BTN_ID             (INPUT_ID_ONE)
+
+/** SRS-0011 */
+#define SYS_MNGT_PROV_BTN_DLY_MS         (2000)
+#define SYS_MNGT_PROV_BTN_TICK_INT       (SYS_MNGT_PROV_BTN_DLY_MS / SYS_MNGT_TICK_INTERVAL_MS)
+
 
 $declare(components::SystemManagement::AO_SysMngt)
 

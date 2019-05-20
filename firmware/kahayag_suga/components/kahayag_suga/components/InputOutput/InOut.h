@@ -46,5 +46,9 @@ extern QActive * const AO_InOut;
 /*${components::InputOutput::InOut_ctor} ...................................*/
 void InOut_ctor(void);
 /*$enddecl${components::InputOutput::InOut_ctor} ^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$declare${components::InputOutput::InOut_GetInputState} vvvvvvvvvvvvvvvvvv*/
+/*${components::InputOutput::InOut_GetInputState} ..........................*/
+bool InOut_GetInputState(INPUT_ID_T id);
+/*$enddecl${components::InputOutput::InOut_GetInputState} ^^^^^^^^^^^^^^^^^^*/
 
 #endif /* IN_OUT_H */

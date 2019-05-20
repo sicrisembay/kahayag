@@ -11,24 +11,12 @@
   <attribute name="inputState[N_INPUT_ID]" type="bool" visibility="0x02" properties="0x00"/>
   <statechart properties="0x01">
    <initial target="../1">
-    <action>QTimeEvt_armX(&amp;me-&gt;tickTimeEvt, INOUT_TICK_INTERVAL_MS, INOUT_TICK_INTERVAL_MS);</action>
     <initial_glyph conn="5,6,5,0,7,3">
      <action box="0,-2,10,2"/>
     </initial_glyph>
    </initial>
    <state name="TOP">
-    <entry>uint32_t idx = 0;
-
-/* Initialize input state */
-for(idx = 0; idx &lt; N_INPUT_ID; idx++) {
-    if(gpio_get_level(INPUT_IO[idx])) {
-        me-&gt;inputState[idx] = 1;
-        me-&gt;debouncer[idx] = UINT32_MAX;
-    } else {
-        me-&gt;inputState[idx] = 0;
-        me-&gt;debouncer[idx] = 0;
-    }
-}</entry>
+    <entry>QTimeEvt_armX(&amp;me-&gt;tickTimeEvt, INOUT_TICK_INTERVAL_MS, INOUT_TICK_INTERVAL_MS);</entry>
     <tran trig="TICK">
      <action>uint32_t idx;
 static uint32_t testCnt = 0;
@@ -98,6 +86,17 @@ if(bInitDone == (uint8_t)0) {
     io_conf.pull_up_en = 1;
     gpio_config(&amp;io_conf);
 
+    /* Initialize input state */
+    for(idx = 0; idx &lt; N_INPUT_ID; idx++) {
+        if(gpio_get_level(INPUT_IO[idx])) {
+            me-&gt;inputState[idx] = 1;
+            me-&gt;debouncer[idx] = UINT32_MAX;
+        } else {
+            me-&gt;inputState[idx] = 0;
+            me-&gt;debouncer[idx] = 0;
+        }
+    }
+
     /* Start active object */
     sprintf(taskName, &quot;AO_IN_OUT&quot;);
     QActive_setAttr(AO_InOut, TASK_NAME_ATTR, taskName);
@@ -112,6 +111,17 @@ if(bInitDone == (uint8_t)0) {
 
     bInitDone = (uint8_t)1;
 }</code>
+ </operation>
+ <operation name="InOut_GetInputState" type="bool" visibility="0x00" properties="0x00">
+  <parameter name="id" type="INPUT_ID_T"/>
+  <code>InOut * me = &amp;l_InOut;
+bool retval = false;
+
+if(id &lt; N_INPUT_ID) {
+    retval = me-&gt;inputState[id];
+}
+
+return(retval);</code>
  </operation>
  <directory name=".">
   <file name="InOut.h">
@@ -131,6 +141,7 @@ $declare(components::InputOutput::Events::InputEvt)
 $declare(components::InputOutput::AO_InOut)
 
 $declare(components::InputOutput::InOut_ctor)
+$declare(components::InputOutput::InOut_GetInputState)
 
 #endif /* IN_OUT_H */</text>
   </file>
@@ -166,8 +177,10 @@ QEvt const * l_InOutQSto[64];
 $define(components::InputOutput::AO_InOut)
 
 $define(components::InputOutput::InOut_ctor)
+$define(components::InputOutput::InOut_GetInputState)
 
-$define(components::InputOutput::InOut)</text>
+$define(components::InputOutput::InOut)
+</text>
   </file>
  </directory>
 </package>

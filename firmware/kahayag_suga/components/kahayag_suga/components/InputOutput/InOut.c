@@ -103,6 +103,17 @@ void InOut_ctor(void) {
         io_conf.pull_up_en = 1;
         gpio_config(&io_conf);
 
+        /* Initialize input state */
+        for(idx = 0; idx < N_INPUT_ID; idx++) {
+            if(gpio_get_level(INPUT_IO[idx])) {
+                me->inputState[idx] = 1;
+                me->debouncer[idx] = UINT32_MAX;
+            } else {
+                me->inputState[idx] = 0;
+                me->debouncer[idx] = 0;
+            }
+        }
+
         /* Start active object */
         sprintf(taskName, "AO_IN_OUT");
         QActive_setAttr(AO_InOut, TASK_NAME_ATTR, taskName);
@@ -119,13 +130,25 @@ void InOut_ctor(void) {
     }
 }
 /*$enddef${components::InputOutput::InOut_ctor} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$define${components::InputOutput::InOut_GetInputState} vvvvvvvvvvvvvvvvvvv*/
+/*${components::InputOutput::InOut_GetInputState} ..........................*/
+bool InOut_GetInputState(INPUT_ID_T id) {
+    InOut * me = &l_InOut;
+    bool retval = false;
+
+    if(id < N_INPUT_ID) {
+        retval = me->inputState[id];
+    }
+
+    return(retval);
+}
+/*$enddef${components::InputOutput::InOut_GetInputState} ^^^^^^^^^^^^^^^^^^^*/
 
 /*$define${components::InputOutput::InOut} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
 /*${components::InputOutput::InOut} ........................................*/
 /*${components::InputOutput::InOut::SM} ....................................*/
 static QState InOut_initial(InOut * const me, QEvt const * const e) {
     /*${components::InputOutput::InOut::SM::initial} */
-    QTimeEvt_armX(&me->tickTimeEvt, INOUT_TICK_INTERVAL_MS, INOUT_TICK_INTERVAL_MS);
     return Q_TRAN(&InOut_TOP);
 }
 /*${components::InputOutput::InOut::SM::TOP} ...............................*/
@@ -134,18 +157,7 @@ static QState InOut_TOP(InOut * const me, QEvt const * const e) {
     switch (e->sig) {
         /*${components::InputOutput::InOut::SM::TOP} */
         case Q_ENTRY_SIG: {
-            uint32_t idx = 0;
-
-            /* Initialize input state */
-            for(idx = 0; idx < N_INPUT_ID; idx++) {
-                if(gpio_get_level(INPUT_IO[idx])) {
-                    me->inputState[idx] = 1;
-                    me->debouncer[idx] = UINT32_MAX;
-                } else {
-                    me->inputState[idx] = 0;
-                    me->debouncer[idx] = 0;
-                }
-            }
+            QTimeEvt_armX(&me->tickTimeEvt, INOUT_TICK_INTERVAL_MS, INOUT_TICK_INTERVAL_MS);
             status_ = Q_HANDLED();
             break;
         }

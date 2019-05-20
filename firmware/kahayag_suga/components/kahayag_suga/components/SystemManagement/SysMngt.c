@@ -29,11 +29,21 @@ Q_DEFINE_THIS_FILE
 typedef struct {
 /* protected: */
     QActive super;
+
+/* private: */
+    QTimeEvt tickTimeEvt;
+    INPUT_ID_T userBtnId;
+    bool isCredentialValid;
 } SysMngt;
 
 /* protected: */
 static QState SysMngt_initial(SysMngt * const me, QEvt const * const e);
 static QState SysMngt_TOP(SysMngt * const me, QEvt const * const e);
+static QState SysMngt_BOOT_CHECK(SysMngt * const me, QEvt const * const e);
+static QState SysMngt_BOOT_BTN_CHECK(SysMngt * const me, QEvt const * const e);
+static QState SysMngt_BOOT_CRED_CHECK(SysMngt * const me, QEvt const * const e);
+static QState SysMngt_PROVISION(SysMngt * const me, QEvt const * const e);
+static QState SysMngt_NORMAL(SysMngt * const me, QEvt const * const e);
 /*$enddecl${components::SystemManagement::SysMngt} ^^^^^^^^^^^^^^^^^^^^^^^^^*/
 
 /* Local Object */
@@ -70,8 +80,10 @@ void SysMgnt_ctor(void) {
         /* Call orthogonal Component constructor */
 
         /* Call Timer Constructor */
+        QTimeEvt_ctorX(&me->tickTimeEvt,  &me->super, TICK_SIG,  0U);
 
         /* Initialize members */
+        me->userBtnId = SYS_MNGT_USER_BTN_ID;
 
         /* Start active object */
         sprintf(taskName, "AO_SYS_MNGT");
@@ -95,28 +107,211 @@ void SysMgnt_ctor(void) {
 /*${components::SystemManagement::SysMngt::SM} .............................*/
 static QState SysMngt_initial(SysMngt * const me, QEvt const * const e) {
     /*${components::SystemManagement::SysMngt::SM::initial} */
-    QActive_subscribe(me, INPUT_POSITIVE_EDGE_SIG);
-    QActive_subscribe(me, INPUT_NEGATIVE_EDGE_SIG);
     return Q_TRAN(&SysMngt_TOP);
 }
 /*${components::SystemManagement::SysMngt::SM::TOP} ........................*/
 static QState SysMngt_TOP(SysMngt * const me, QEvt const * const e) {
     QState status_;
     switch (e->sig) {
-        /*${components::SystemManagement::SysMngt::SM::TOP::INPUT_POSITIVE_EDGE} */
-        case INPUT_POSITIVE_EDGE_SIG: {
-            printf("INPUT_POSITIVE_EDGE Event from %d\n", Q_EVT_CAST(InputEvt)->id);
+        /*${components::SystemManagement::SysMngt::SM::TOP} */
+        case Q_ENTRY_SIG: {
+            QActive_subscribe((QActive *)me, INPUT_POSITIVE_EDGE_SIG);
+            QActive_subscribe((QActive *)me, INPUT_NEGATIVE_EDGE_SIG);
+
+            QTimeEvt_armX(&me->tickTimeEvt, SYS_MNGT_TICK_INTERVAL_MS, SYS_MNGT_TICK_INTERVAL_MS);
             status_ = Q_HANDLED();
             break;
         }
-        /*${components::SystemManagement::SysMngt::SM::TOP::INPUT_NEGATIVE_EDGE} */
+        /*${components::SystemManagement::SysMngt::SM::TOP} */
+        case Q_EXIT_SIG: {
+            QActive_unsubscribe((QActive *)me, INPUT_POSITIVE_EDGE_SIG);
+            QActive_unsubscribe((QActive *)me, INPUT_NEGATIVE_EDGE_SIG);
+
+            QTimeEvt_disarm(&me->tickTimeEvt);
+            status_ = Q_HANDLED();
+            break;
+        }
+        /*${components::SystemManagement::SysMngt::SM::TOP::initial} */
+        case Q_INIT_SIG: {
+            status_ = Q_TRAN(&SysMngt_BOOT_CHECK);
+            break;
+        }
+        /*${components::SystemManagement::SysMngt::SM::TOP::TICK, INPUT_POSITIVE_EDGE, INPUT~} */
+        case TICK_SIG: /* intentionally fall through */
+        case INPUT_POSITIVE_EDGE_SIG: /* intentionally fall through */
         case INPUT_NEGATIVE_EDGE_SIG: {
-            printf("INPUT_NEGATIVE_EDGE Event from %d\n", Q_EVT_CAST(InputEvt)->id);
             status_ = Q_HANDLED();
             break;
         }
         default: {
             status_ = Q_SUPER(&QHsm_top);
+            break;
+        }
+    }
+    return status_;
+}
+/*${components::SystemManagement::SysMngt::SM::TOP::BOOT_CHECK} ............*/
+static QState SysMngt_BOOT_CHECK(SysMngt * const me, QEvt const * const e) {
+    QState status_;
+    switch (e->sig) {
+        /*${components::SystemManagement::SysMngt::SM::TOP::BOOT_CHECK} */
+        case Q_ENTRY_SIG: {
+            printf("BOOT_CHECK: entry\n");
+            status_ = Q_HANDLED();
+            break;
+        }
+        /*${components::SystemManagement::SysMngt::SM::TOP::BOOT_CHECK} */
+        case Q_EXIT_SIG: {
+            printf("BOOT_CHECK: exit\n");
+            status_ = Q_HANDLED();
+            break;
+        }
+        /*${components::SystemManagement::SysMngt::SM::TOP::BOOT_CHECK::TICK} */
+        case TICK_SIG: {
+            /*${components::SystemManagement::SysMngt::SM::TOP::BOOT_CHECK::TICK::[userBtnPressed]} */
+            if (false == InOut_GetInputState(me->userBtnId)) {
+                status_ = Q_TRAN(&SysMngt_BOOT_BTN_CHECK);
+            }
+            /*${components::SystemManagement::SysMngt::SM::TOP::BOOT_CHECK::TICK::[else]} */
+            else {
+                status_ = Q_TRAN(&SysMngt_BOOT_CRED_CHECK);
+            }
+            break;
+        }
+        /*${components::SystemManagement::SysMngt::SM::TOP::BOOT_CHECK::INPUT_POSITIVE_EDGE, INPUT_NEGAT~} */
+        case INPUT_POSITIVE_EDGE_SIG: /* intentionally fall through */
+        case INPUT_NEGATIVE_EDGE_SIG: {
+            status_ = Q_HANDLED();
+            break;
+        }
+        default: {
+            status_ = Q_SUPER(&SysMngt_TOP);
+            break;
+        }
+    }
+    return status_;
+}
+/*${components::SystemManagement::SysMngt::SM::TOP::BOOT_CHECK::BOOT_BTN_CHECK} */
+static QState SysMngt_BOOT_BTN_CHECK(SysMngt * const me, QEvt const * const e) {
+    QState status_;
+    switch (e->sig) {
+        /*${components::SystemManagement::SysMngt::SM::TOP::BOOT_CHECK::BOOT_BTN_CHECK} */
+        case Q_ENTRY_SIG: {
+            QTimeEvt_disarm(&me->tickTimeEvt);
+            QTimeEvt_armX(&me->tickTimeEvt, SYS_MNGT_PROV_BTN_TICK_INT, SYS_MNGT_PROV_BTN_TICK_INT);
+
+            printf("BOOT_BTN_CHECK: entry\n");
+            status_ = Q_HANDLED();
+            break;
+        }
+        /*${components::SystemManagement::SysMngt::SM::TOP::BOOT_CHECK::BOOT_BTN_CHECK} */
+        case Q_EXIT_SIG: {
+            QTimeEvt_disarm(&me->tickTimeEvt);
+            QTimeEvt_armX(&me->tickTimeEvt, SYS_MNGT_TICK_INTERVAL_MS, SYS_MNGT_TICK_INTERVAL_MS);
+
+            printf("BOOT_BTN_CHECK: exit\n");
+            status_ = Q_HANDLED();
+            break;
+        }
+        /*${components::SystemManagement::SysMngt::SM::TOP::BOOT_CHECK::BOOT_BTN_CHECK::TICK} */
+        case TICK_SIG: {
+            status_ = Q_TRAN(&SysMngt_PROVISION);
+            break;
+        }
+        /*${components::SystemManagement::SysMngt::SM::TOP::BOOT_CHECK::BOOT_BTN_CHECK::INPUT_POSITIVE_EDGE} */
+        case INPUT_POSITIVE_EDGE_SIG: {
+            status_ = Q_TRAN(&SysMngt_BOOT_CRED_CHECK);
+            break;
+        }
+        default: {
+            status_ = Q_SUPER(&SysMngt_BOOT_CHECK);
+            break;
+        }
+    }
+    return status_;
+}
+/*${components::SystemManagement::SysMngt::SM::TOP::BOOT_CHECK::BOOT_CRED_CHECK} */
+static QState SysMngt_BOOT_CRED_CHECK(SysMngt * const me, QEvt const * const e) {
+    QState status_;
+    switch (e->sig) {
+        /*${components::SystemManagement::SysMngt::SM::TOP::BOOT_CHECK::BOOT_CRED_CHECK} */
+        case Q_ENTRY_SIG: {
+            /* Check Credential */
+            /// TODO
+
+            // mock
+            me->isCredentialValid = true;
+
+            printf("BOOT_CRED_CHECK: entry\n");
+            status_ = Q_HANDLED();
+            break;
+        }
+        /*${components::SystemManagement::SysMngt::SM::TOP::BOOT_CHECK::BOOT_CRED_CHECK} */
+        case Q_EXIT_SIG: {
+            printf("BOOT_CRED_CHECK: exit\n");
+            status_ = Q_HANDLED();
+            break;
+        }
+        /*${components::SystemManagement::SysMngt::SM::TOP::BOOT_CHECK::BOOT_CRED_CHECK::TICK} */
+        case TICK_SIG: {
+            /*${components::SystemManagement::SysMngt::SM::TOP::BOOT_CHECK::BOOT_CRED_CHECK::TICK::[InvalidCredential]} */
+            if (!(me->isCredentialValid)) {
+                status_ = Q_TRAN(&SysMngt_PROVISION);
+            }
+            /*${components::SystemManagement::SysMngt::SM::TOP::BOOT_CHECK::BOOT_CRED_CHECK::TICK::[else]} */
+            else {
+                status_ = Q_TRAN(&SysMngt_NORMAL);
+            }
+            break;
+        }
+        default: {
+            status_ = Q_SUPER(&SysMngt_BOOT_CHECK);
+            break;
+        }
+    }
+    return status_;
+}
+/*${components::SystemManagement::SysMngt::SM::TOP::PROVISION} .............*/
+static QState SysMngt_PROVISION(SysMngt * const me, QEvt const * const e) {
+    QState status_;
+    switch (e->sig) {
+        /*${components::SystemManagement::SysMngt::SM::TOP::PROVISION} */
+        case Q_ENTRY_SIG: {
+            printf("PROVISION: entry\n");
+            status_ = Q_HANDLED();
+            break;
+        }
+        /*${components::SystemManagement::SysMngt::SM::TOP::PROVISION} */
+        case Q_EXIT_SIG: {
+            printf("PROVISION: exit\n");
+            status_ = Q_HANDLED();
+            break;
+        }
+        default: {
+            status_ = Q_SUPER(&SysMngt_TOP);
+            break;
+        }
+    }
+    return status_;
+}
+/*${components::SystemManagement::SysMngt::SM::TOP::NORMAL} ................*/
+static QState SysMngt_NORMAL(SysMngt * const me, QEvt const * const e) {
+    QState status_;
+    switch (e->sig) {
+        /*${components::SystemManagement::SysMngt::SM::TOP::NORMAL} */
+        case Q_ENTRY_SIG: {
+            printf("NORMAL: entry\n");
+            status_ = Q_HANDLED();
+            break;
+        }
+        /*${components::SystemManagement::SysMngt::SM::TOP::NORMAL} */
+        case Q_EXIT_SIG: {
+            printf("NORMAL: exit\n");
+            status_ = Q_HANDLED();
+            break;
+        }
+        default: {
+            status_ = Q_SUPER(&SysMngt_TOP);
             break;
         }
     }
