@@ -10,3 +10,7 @@ COMPONENT_ADD_INCLUDEDIRS += .
 COMPONENT_ADD_INCLUDEDIRS += components/SystemManagement
 COMPONENT_SRCDIRS += components/SystemManagement
 
+# Input Output
+COMPONENT_ADD_INCLUDEDIRS += components/InputOutput
+COMPONENT_SRCDIRS += components/InputOutput
+

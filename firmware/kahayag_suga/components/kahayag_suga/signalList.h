@@ -22,7 +22,8 @@
 enum testSignal {
     // Events/Signals that are published **************************************
     /* Published Sensor Signals */
-    TEST_READY_SIG = Q_USER_SIG,
+    INPUT_POSITIVE_EDGE_SIG = Q_USER_SIG,
+    INPUT_NEGATIVE_EDGE_SIG,
 
     MAX_PUB_SIG,                            // last published signal
 

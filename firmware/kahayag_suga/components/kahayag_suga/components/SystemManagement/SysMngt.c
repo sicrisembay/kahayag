@@ -20,6 +20,7 @@
 #include "signalList.h"
 #include "priorityList.h"
 #include "SysMngt.h"
+#include "InOut.h"
 
 Q_DEFINE_THIS_FILE
 
@@ -38,7 +39,7 @@ static QState SysMngt_TOP(SysMngt * const me, QEvt const * const e);
 /* Local Object */
 static SysMngt l_SysMngt;
 /* FreeRTOS stack for AO */
-static StackType_t sysMngtStack[1024];
+static StackType_t sysMngtStack[2*configIDLE_TASK_STACK_SIZE];
 /* AO Queue */
 QEvt const * l_SysMngtQSto[64];
 
@@ -52,7 +53,7 @@ QEvt const * l_SysMngtQSto[64];
 
 /** Opaque pointer to SysMngt AO */
 /*${components::SystemManagement::AO_SysMngt} ..............................*/
-QActive * const AO_SysMngt = &(l_SysMngt.super);
+QActive * const AO_SysMngt = &l_SysMngt.super;
 /*$enddef${components::SystemManagement::AO_SysMngt} ^^^^^^^^^^^^^^^^^^^^^^^*/
 
 /*$define${components::SystemManagement::SysMgnt_ctor} vvvvvvvvvvvvvvvvvvvvv*/
@@ -94,15 +95,23 @@ void SysMgnt_ctor(void) {
 /*${components::SystemManagement::SysMngt::SM} .............................*/
 static QState SysMngt_initial(SysMngt * const me, QEvt const * const e) {
     /*${components::SystemManagement::SysMngt::SM::initial} */
+    QActive_subscribe(me, INPUT_POSITIVE_EDGE_SIG);
+    QActive_subscribe(me, INPUT_NEGATIVE_EDGE_SIG);
     return Q_TRAN(&SysMngt_TOP);
 }
 /*${components::SystemManagement::SysMngt::SM::TOP} ........................*/
 static QState SysMngt_TOP(SysMngt * const me, QEvt const * const e) {
     QState status_;
     switch (e->sig) {
-        /*${components::SystemManagement::SysMngt::SM::TOP} */
-        case Q_ENTRY_SIG: {
-            printf("CPU%d: Hello World!\n", xPortGetCoreID());
+        /*${components::SystemManagement::SysMngt::SM::TOP::INPUT_POSITIVE_EDGE} */
+        case INPUT_POSITIVE_EDGE_SIG: {
+            printf("INPUT_POSITIVE_EDGE Event from %d\n", Q_EVT_CAST(InputEvt)->id);
+            status_ = Q_HANDLED();
+            break;
+        }
+        /*${components::SystemManagement::SysMngt::SM::TOP::INPUT_NEGATIVE_EDGE} */
+        case INPUT_NEGATIVE_EDGE_SIG: {
+            printf("INPUT_NEGATIVE_EDGE Event from %d\n", Q_EVT_CAST(InputEvt)->id);
             status_ = Q_HANDLED();
             break;
         }

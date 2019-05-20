@@ -18,7 +18,7 @@ void QF_onStartup(void)
 
 void Q_onAssert(char_t const * const module, int_t location)
 {
-
+	printf("Q_onAssert: module:%s loc:%d\n", module, location);
 }
 
 #ifdef Q_SPY

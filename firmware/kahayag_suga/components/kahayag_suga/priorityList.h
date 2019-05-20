@@ -22,6 +22,7 @@
 enum task_priority {
     PRIORITY_QSPY_TX = tskIDLE_PRIORITY + 1,
     PRIORITY_QSPY_RX,
+    PRIORITY_IN_OUT,
     PRIORITY_SYS_MNGT,
 
     PRIORITY_MAX

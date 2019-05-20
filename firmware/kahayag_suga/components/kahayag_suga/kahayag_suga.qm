@@ -2,7 +2,8 @@
 <model version="4.5.0" links="0">
  <framework name="qpc"/>
  <package name="components" stereotype="0x02">
-  <package file="components/SystemManagement/SystemManagement.qmp"/>
+  <package file="./components/SystemManagement/SystemManagement.qmp"/>
+  <package file="./components/InputOutput/InputOutput.qmp"/>
  </package>
  <directory name=".">
   <file name="signalList.h">
@@ -12,7 +13,8 @@
 enum testSignal {
     // Events/Signals that are published **************************************
     /* Published Sensor Signals */
-    TEST_READY_SIG = Q_USER_SIG,
+    INPUT_POSITIVE_EDGE_SIG = Q_USER_SIG,
+    INPUT_NEGATIVE_EDGE_SIG,
 
     MAX_PUB_SIG,                            // last published signal
 
@@ -35,6 +37,7 @@ enum testSignal {
 enum task_priority {
     PRIORITY_QSPY_TX = tskIDLE_PRIORITY + 1,
     PRIORITY_QSPY_RX,
+    PRIORITY_IN_OUT,
     PRIORITY_SYS_MNGT,
 
     PRIORITY_MAX

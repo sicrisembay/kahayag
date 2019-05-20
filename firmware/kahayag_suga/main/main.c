@@ -9,6 +9,7 @@
 #endif /** Q_SPY */
 #include "signalList.h"
 #include "SysMngt.h"
+#include "InOut.h"
 
 /*
  * small size pool.
@@ -77,6 +78,7 @@ void app_main()
 
     /* Call Active Object Constructors */
     SysMgnt_ctor();
+    InOut_ctor();
 
     /* Run QF */
     QF_run();

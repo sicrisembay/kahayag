@@ -1,24 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <package name="SystemManagement" stereotype="0x02">
  <class name="SysMngt" superclass="qpc::QActive">
-  <statechart properties="0x00">
+  <statechart properties="0x01">
    <initial target="../1">
+    <action>QActive_subscribe(me, INPUT_POSITIVE_EDGE_SIG);
+QActive_subscribe(me, INPUT_NEGATIVE_EDGE_SIG);</action>
     <initial_glyph conn="14,8,5,0,12,4">
      <action box="0,-2,10,2"/>
     </initial_glyph>
    </initial>
    <state name="TOP">
-    <entry>printf(&quot;CPU%d: Hello World!\n&quot;, xPortGetCoreID());</entry>
-    <state_glyph node="14,12,40,21">
-     <entry box="1,2,6,2"/>
-    </state_glyph>
+    <tran trig="INPUT_POSITIVE_EDGE">
+     <action>printf(&quot;INPUT_POSITIVE_EDGE Event from %d\n&quot;, Q_EVT_CAST(InputEvt)-&gt;id);</action>
+     <tran_glyph conn="14,20,3,-1,21">
+      <action box="0,-2,19,2"/>
+     </tran_glyph>
+    </tran>
+    <tran trig="INPUT_NEGATIVE_EDGE">
+     <action>printf(&quot;INPUT_NEGATIVE_EDGE Event from %d\n&quot;, Q_EVT_CAST(InputEvt)-&gt;id);</action>
+     <tran_glyph conn="14,24,3,-1,21">
+      <action box="0,-2,19,2"/>
+     </tran_glyph>
+    </tran>
+    <state_glyph node="14,12,40,21"/>
    </state>
    <state_diagram size="80,50"/>
   </statechart>
  </class>
  <attribute name="AO_SysMngt" type="QActive * const" visibility="0x00" properties="0x00">
   <documentation>/** Opaque pointer to SysMngt AO */</documentation>
-  <code>= &amp;(l_SysMngt.super);</code>
+  <code>= &amp;l_SysMngt.super;</code>
  </attribute>
  <operation name="SysMgnt_ctor" type="void" visibility="0x00" properties="0x00">
   <code>static uint8_t bInitDone = (uint8_t)0;
@@ -66,6 +77,7 @@ $declare(components::SystemManagement::SysMgnt_ctor)
 #include &quot;signalList.h&quot;
 #include &quot;priorityList.h&quot;
 #include &quot;SysMngt.h&quot;
+#include &quot;InOut.h&quot;
 
 Q_DEFINE_THIS_FILE
 
@@ -74,7 +86,7 @@ $declare(components::SystemManagement::SysMngt)
 /* Local Object */
 static SysMngt l_SysMngt;
 /* FreeRTOS stack for AO */
-static StackType_t sysMngtStack[1024];
+static StackType_t sysMngtStack[2*configIDLE_TASK_STACK_SIZE];
 /* AO Queue */
 QEvt const * l_SysMngtQSto[64];
 
