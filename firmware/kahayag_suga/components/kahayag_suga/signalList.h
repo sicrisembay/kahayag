@@ -33,6 +33,8 @@ enum testSignal {
     GET_SIGNAL_DICTIONARY_SIG,
     /* Module Generic Signal */
     TICK_SIG,
+    /* Provision */
+    START_PROVISION_SIG,
 
     MAX_SIG
 };

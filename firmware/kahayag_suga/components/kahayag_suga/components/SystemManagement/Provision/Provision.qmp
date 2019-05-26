@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package name="provision" stereotype="0x02">
+ <class name="Provision" superclass="qpc::QHsm">
+  <attribute name="pParent" type="QHsm *" visibility="0x02" properties="0x00"/>
+  <attribute name="pcHdlr" type="protocomm_t *" visibility="0x02" properties="0x00"/>
+  <attribute name="security" type="int" visibility="0x02" properties="0x00"/>
+  <attribute name="pop" type="const protocomm_security_pop_t *" visibility="0x02" properties="0x00"/>
+  <attribute name="wifi_disconnect_reason" type="wifi_prov_sta_fail_reason_t" visibility="0x02" properties="0x00"/>
+  <attribute name="ssid[MAX_PROV_SSID_LEN + 1]" type="char" visibility="0x02" properties="0x00"/>
+  <attribute name="password[MAX_PROV_PASS_LEN+1]" type="char" visibility="0x02" properties="0x00"/>
+  <statechart properties="0x03">
+   <initial target="../1">
+    <initial_glyph conn="6,4,5,0,6,4">
+     <action box="0,-2,10,2"/>
+    </initial_glyph>
+   </initial>
+   <state name="TOP">
+    <initial target="../1">
+     <initial_glyph conn="9,14,5,0,7,2">
+      <action box="0,-2,10,2"/>
+     </initial_glyph>
+    </initial>
+    <state name="INACTIVE">
+     <entry>ESP_LOGI(TAG, &quot;INACTIVE entry&quot;);</entry>
+     <exit>ESP_LOGI(TAG, &quot;INACTIVE exit&quot;);</exit>
+     <tran trig="START_PROVISION" target="../../2">
+      <tran_glyph conn="12,22,3,1,62,18,-13">
+       <action box="0,-2,17,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="12,16,49,14">
+      <entry box="1,2,6,2"/>
+      <exit box="1,4,6,2"/>
+     </state_glyph>
+    </state>
+    <state name="ACTIVE">
+     <entry>esp_err_t retval = ESP_OK;
+
+ESP_LOGI(TAG, &quot;ACTIVE: entry&quot;);
+
+ESP_LOGI(TAG, &quot;Starting WiFi SoftAP provisioning&quot;);
+ESP_ERROR_CHECK(Wifi_AddHook(Prov_EventHandler));
+
+/* Start Provisioning */
+retval = doWork(Prov_start_wifi_ap);
+if(retval != ESP_OK) {
+    ESP_LOGE(TAG, &quot;Failed on starting wifi ap&quot;);
+}</entry>
+     <exit>ESP_ERROR_CHECK(Wifi_RemoveHook(Prov_EventHandler));
+ESP_LOGI(TAG, &quot;ACTIVE exit&quot;);</exit>
+     <state_glyph node="12,32,49,20">
+      <entry box="1,2,6,2"/>
+      <exit box="1,4,6,2"/>
+     </state_glyph>
+    </state>
+    <state_glyph node="6,8,72,46"/>
+   </state>
+   <state_diagram size="80,56"/>
+  </statechart>
+ </class>
+ <attribute name="TAG" type="const char *" visibility="0x02" properties="0x00">
+  <code>=&quot;PROV_QHSM&quot;;</code>
+ </attribute>
+ <operation name="Prov_ctor" type="QHsm *" visibility="0x00" properties="0x00">
+  <parameter name="parent" type="QHsm *"/>
+  <code>static uint8_t bInitDone = (uint8_t)0;
+Provision *me;
+uint32_t idx;
+
+if(bInitDone == (uint8_t)0) {
+    me = &amp;l_Provision;
+    /* Call constructor */
+    QHsm_ctor(&amp;me-&gt;super, Q_STATE_CAST(&amp;Provision_initial));
+
+    /* Call orthogonal Component constructor */
+
+    /* Call Timer Constructor */
+
+    /* Initialize members */
+    me-&gt;pParent = parent;
+    me-&gt;pcHdlr = NULL;
+    me-&gt;security = 0;
+    me-&gt;pop = NULL;
+    memset(me-&gt;ssid, 0, sizeof(me-&gt;ssid));
+    snprintf(me-&gt;ssid, MAX_PROV_SSID_LEN, &quot;SUGA_XXXXXX&quot;);
+    memset(me-&gt;password, 0, sizeof(me-&gt;password));
+    snprintf(me-&gt;password, MAX_PROV_PASS_LEN, &quot;password123&quot;);
+
+    bInitDone = (uint8_t)1;
+}
+
+return(&amp;me-&gt;super);</code>
+ </operation>
+ <operation name="Prov_EventHandler" type="esp_err_t" visibility="0x02" properties="0x00">
+  <parameter name="ctx" type="void *"/>
+  <parameter name="event" type="system_event_t *"/>
+  <code>Provision * me = &amp;l_Provision;
+
+/* For accessing reason codes in case of disconnection */
+system_event_info_t *info = &amp;event-&gt;event_info;
+
+/* If pointer to provisioning application data is NULL
+ * then provisioning is not running, therefore return without
+ * error */
+//if (!g_prov) {
+//    return ESP_OK;
+//}
+
+switch(event-&gt;event_id) {
+case SYSTEM_EVENT_STA_START:
+    ESP_LOGI(TAG, &quot;STA Start&quot;);
+    /* Once configuration is received by protocomm server,
+     * device is restarted as both AP and Station.
+     * Once station starts, wait for connection to
+     * establish with configured host SSID and password */
+//    g_prov-&gt;wifi_state = WIFI_PROV_STA_CONNECTING;
+    break;
+
+case SYSTEM_EVENT_STA_GOT_IP:
+    ESP_LOGI(TAG, &quot;STA Got IP&quot;);
+    /* Station got IP. That means configuraion is successful.
+     * Schedule timer to stop provisioning app after 30 seconds. */
+//    g_prov-&gt;wifi_state = WIFI_PROV_STA_CONNECTED;
+//    if (g_prov &amp;&amp; g_prov-&gt;timer) {
+        /* Note that, after restarting the WiFi in Station + AP mode, the
+         * user gets disconnected from the AP for a while. But at the same
+         * time, the user app requests for status update from the device
+         * to verify that the provisioning was successful. Therefore, the
+         * turning off of the AP must be delayed long enough for the user
+         * to reconnect and get STA connection status from the device.
+         * Otherwise, the AP will be turned off before the user can
+         * reconnect and thus the user app will see connection timed out,
+         * signalling a failure in provisioning. */
+//        esp_timer_start_once(g_prov-&gt;timer, 30000*1000U);
+//    }
+    break;
+
+case SYSTEM_EVENT_STA_DISCONNECTED:
+    ESP_LOGE(TAG, &quot;STA Disconnected&quot;);
+    /* Station couldn't connect to configured host SSID */
+//    g_prov-&gt;wifi_state = WIFI_PROV_STA_DISCONNECTED;
+    ESP_LOGE(TAG, &quot;Disconnect reason : %d&quot;, info-&gt;disconnected.reason);
+
+    /* Set code corresponding to the reason for disconnection */
+    switch (info-&gt;disconnected.reason) {
+    case WIFI_REASON_AUTH_EXPIRE:
+    case WIFI_REASON_4WAY_HANDSHAKE_TIMEOUT:
+    case WIFI_REASON_BEACON_TIMEOUT:
+    case WIFI_REASON_AUTH_FAIL:
+    case WIFI_REASON_ASSOC_FAIL:
+    case WIFI_REASON_HANDSHAKE_TIMEOUT:
+        ESP_LOGI(TAG, &quot;STA Auth Error&quot;);
+        me-&gt;wifi_disconnect_reason = WIFI_PROV_STA_AUTH_ERROR;
+        break;
+    case WIFI_REASON_NO_AP_FOUND:
+        ESP_LOGI(TAG, &quot;STA AP Not found&quot;);
+        me-&gt;wifi_disconnect_reason = WIFI_PROV_STA_AP_NOT_FOUND;
+        break;
+    default:
+        /* If none of the expected reasons,
+         * retry connecting to host SSID */
+//        g_prov-&gt;wifi_state = WIFI_PROV_STA_CONNECTING;
+//        esp_wifi_connect();
+        break;
+    }
+    break;
+
+default:
+    break;
+}
+return ESP_OK;</code>
+ </operation>
+ <operation name="Prov_start_wifi_ap" type="void" visibility="0x02" properties="0x00">
+  <code>uint8_t eth_mac[6];
+esp_err_t err = ESP_OK;
+Provision *me = &amp;l_Provision;
+wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+
+/* Initialise WiFi with default configuration */
+err = esp_wifi_init(&amp;cfg);
+if (err != ESP_OK) {
+    ESP_LOGE(TAG, &quot;Failed to init WiFi : %d&quot;, err);
+    return;
+}
+
+/* Set Wifi mode to AP */
+ESP_LOGI(TAG, &quot;Set WiFi mode to AP&quot;);
+err = esp_wifi_set_mode(WIFI_MODE_AP);
+if (err != ESP_OK) {
+    ESP_LOGE(TAG, &quot;Failed to set WiFi mode : %d&quot;, err);
+    return;
+}
+
+/* SSID is based on MAC */
+err = esp_wifi_get_mac(WIFI_IF_STA, eth_mac);
+if(err != ESP_OK) {
+    ESP_LOGE(TAG, &quot;Error in getting mac: %d&quot;, err);
+} else {
+    snprintf(me-&gt;ssid, MAX_PROV_SSID_LEN, &quot;SUGA_%02X%02X%02X&quot;,
+            eth_mac[3], eth_mac[4], eth_mac[5]);
+}
+
+/* Build WiFi configuration for AP mode */
+wifi_config_t wifi_config = {
+    .ap = {
+        .max_connection = 5,
+    },
+};
+
+strncpy((char *) wifi_config.ap.ssid, me-&gt;ssid, sizeof(wifi_config.ap.ssid));
+wifi_config.ap.ssid_len = strlen(me-&gt;ssid);
+
+if (strlen(me-&gt;password) == 0) {
+    memset(wifi_config.ap.password, 0, sizeof(wifi_config.ap.password));
+    wifi_config.ap.authmode = WIFI_AUTH_OPEN;
+} else {
+    strncpy((char *) wifi_config.ap.password, me-&gt;password, sizeof(wifi_config.ap.password));
+    wifi_config.ap.authmode = WIFI_AUTH_WPA_WPA2_PSK;
+}
+
+/* Start WiFi in AP mode with configuration built above */
+ESP_LOGI(TAG, &quot;Configure WiFi AP&quot;);
+err = esp_wifi_set_config(ESP_IF_WIFI_AP, &amp;wifi_config);
+if (err != ESP_OK) {
+    ESP_LOGE(TAG, &quot;Failed to set WiFi config : %d&quot;, err);
+    return;
+}
+ESP_LOGI(TAG, &quot;Start WiFi&quot;);
+err = esp_wifi_start();
+if (err != ESP_OK) {
+    ESP_LOGE(TAG, &quot;Failed to start WiFi : %d&quot;, err);
+    return;
+}
+</code>
+ </operation>
+ <directory name=".">
+  <file name="Provision.h">
+   <text>#ifndef __KAHAYAG_PROVISION_H__
+#define __KAHAYAG_PROVISION_H__
+
+#define MAX_PROV_SSID_LEN        (16)
+#define MAX_PROV_PASS_LEN        (32)
+
+$declare(components::SystemManagement::components::provision::Prov_ctor)
+
+#endif /* __KAHAYAG_PROVISION_H__ */</text>
+  </file>
+  <file name="Provision.c">
+   <text>#include &quot;qpc.h&quot;
+#include &quot;signalList.h&quot;
+#include &quot;Provision.h&quot;
+#include &quot;Wifi.h&quot;
+#include &quot;worker.h&quot;
+
+#include &quot;esp_log.h&quot;
+#include &quot;esp_wifi.h&quot;
+#include &quot;protocomm.h&quot;
+#include &quot;wifi_provisioning/wifi_config.h&quot;
+
+#include &quot;string.h&quot;
+
+$declare(components::SystemManagement::components::provision::Provision)
+
+Provision l_Provision;
+
+$define(components::SystemManagement::components::provision::TAG)
+
+$define(components::SystemManagement::components::provision::Prov_ctor)
+$define(components::SystemManagement::components::provision::Prov_EventHandler)
+$define(components::SystemManagement::components::provision::Prov_start_wifi_ap)
+
+$define(components::SystemManagement::components::provision::Provision)
+</text>
+  </file>
+ </directory>
+</package>

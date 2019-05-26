@@ -20,9 +20,23 @@
 #include "signalList.h"
 #include "priorityList.h"
 #include "SysMngt.h"
+#include "Wifi.h"
+#include "Provision.h"
 #include "InOut.h"
 
+#include "tcpip_adapter.h"
+#include "esp_event_loop.h"
+#include "esp_log.h"
+#include "esp_wifi.h"
+
 Q_DEFINE_THIS_FILE
+
+#define SYS_MNGT_DEBUG  (1)
+#if(SYS_MNGT_DEBUG == 1)
+#define DEBUG_SYS_MNGT(x)    printf(x)
+#else
+#define DEBUG_SYS_MNGT(x)
+#endif /* #if(SYS_MNGT_DEBUG == 1) */
 
 /*$declare${components::SystemManagement::SysMngt} vvvvvvvvvvvvvvvvvvvvvvvvv*/
 /*${components::SystemManagement::SysMngt} .................................*/
@@ -31,10 +45,17 @@ typedef struct {
     QActive super;
 
 /* private: */
+    QHsm * pWifi;
+    QHsm * pProvision;
     QTimeEvt tickTimeEvt;
     INPUT_ID_T userBtnId;
     bool isCredentialValid;
+    int provision_security;
 } SysMngt;
+
+/* private: */
+static esp_err_t SysMngt_event_handler(void * ctx, system_event_t * event);
+static esp_err_t SysMngt_prov_event_handler(void * ctx, system_event_t * event);
 
 /* protected: */
 static QState SysMngt_initial(SysMngt * const me, QEvt const * const e);
@@ -59,6 +80,11 @@ QEvt const * l_SysMngtQSto[64];
 #error qpc version 6.5.0 or higher required
 #endif
 /*$endskip${QP_VERSION} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$define${components::SystemManagement::TAG} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${components::SystemManagement::TAG} .....................................*/
+static const char * TAG ="AppMngt";
+/*$enddef${components::SystemManagement::TAG} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+
 /*$define${components::SystemManagement::AO_SysMngt} vvvvvvvvvvvvvvvvvvvvvvv*/
 
 /** Opaque pointer to SysMngt AO */
@@ -78,7 +104,8 @@ void SysMgnt_ctor(void) {
         /* Call constructor */
         QActive_ctor(&me->super, Q_STATE_CAST(&SysMngt_initial));
         /* Call orthogonal Component constructor */
-
+        me->pWifi = Wifi_ctor(&(me->super.super));
+        me->pProvision = Prov_ctor(&(me->super.super));
         /* Call Timer Constructor */
         QTimeEvt_ctorX(&me->tickTimeEvt,  &me->super, TICK_SIG,  0U);
 
@@ -104,9 +131,64 @@ void SysMgnt_ctor(void) {
 
 /*$define${components::SystemManagement::SysMngt} vvvvvvvvvvvvvvvvvvvvvvvvvv*/
 /*${components::SystemManagement::SysMngt} .................................*/
+/*${components::SystemManagement::SysMngt::event_handler} ..................*/
+static esp_err_t SysMngt_event_handler(void * ctx, system_event_t * event) {
+    /* Invoke Provisioning event handler first */
+    SysMngt_prov_event_handler(ctx, event);
+
+    switch(event->event_id) {
+    case SYSTEM_EVENT_AP_START:
+        ESP_LOGI(TAG, "SoftAP started");
+        break;
+    case SYSTEM_EVENT_AP_STOP:
+        ESP_LOGI(TAG, "SoftAP stopped");
+        break;
+    case SYSTEM_EVENT_STA_START:
+        esp_wifi_connect();
+        break;
+    case SYSTEM_EVENT_STA_GOT_IP:
+        ESP_LOGI(TAG, "got ip:%s",
+                 ip4addr_ntoa(&event->event_info.got_ip.ip_info.ip));
+        break;
+    case SYSTEM_EVENT_AP_STACONNECTED:
+        ESP_LOGI(TAG, "station:"MACSTR" join, AID=%d",
+                 MAC2STR(event->event_info.sta_connected.mac),
+                 event->event_info.sta_connected.aid);
+        break;
+    case SYSTEM_EVENT_AP_STADISCONNECTED:
+        ESP_LOGI(TAG, "station:"MACSTR"leave, AID=%d",
+                 MAC2STR(event->event_info.sta_disconnected.mac),
+                 event->event_info.sta_disconnected.aid);
+        break;
+    case SYSTEM_EVENT_STA_DISCONNECTED:
+        break;
+    default:
+        break;
+    }
+    return ESP_OK;
+}
+
+/*${components::SystemManagement::SysMngt::prov_event_handler} .............*/
+static esp_err_t SysMngt_prov_event_handler(void * ctx, system_event_t * event) {
+    return ESP_OK;
+}
+
 /*${components::SystemManagement::SysMngt::SM} .............................*/
 static QState SysMngt_initial(SysMngt * const me, QEvt const * const e) {
     /*${components::SystemManagement::SysMngt::SM::initial} */
+    QS_OBJ_DICTIONARY(&l_SysMngt);
+
+    /* Initial Transition of orthogonal component */
+    QHSM_INIT(me->pWifi, (QEvt*)0);
+    QHSM_INIT(me->pProvision, (QEvt*)0);
+
+    QS_FUN_DICTIONARY(&SysMngt_TOP);
+    QS_FUN_DICTIONARY(&SysMngt_BOOT_CHECK);
+    QS_FUN_DICTIONARY(&SysMngt_BOOT_BTN_CHECK);
+    QS_FUN_DICTIONARY(&SysMngt_BOOT_CRED_CHECK);
+    QS_FUN_DICTIONARY(&SysMngt_PROVISION);
+    QS_FUN_DICTIONARY(&SysMngt_NORMAL);
+
     return Q_TRAN(&SysMngt_TOP);
 }
 /*${components::SystemManagement::SysMngt::SM::TOP} ........................*/
@@ -156,13 +238,13 @@ static QState SysMngt_BOOT_CHECK(SysMngt * const me, QEvt const * const e) {
     switch (e->sig) {
         /*${components::SystemManagement::SysMngt::SM::TOP::BOOT_CHECK} */
         case Q_ENTRY_SIG: {
-            printf("BOOT_CHECK: entry\n");
+            ESP_LOGI(TAG, "BOOT_CHECK: entry");
             status_ = Q_HANDLED();
             break;
         }
         /*${components::SystemManagement::SysMngt::SM::TOP::BOOT_CHECK} */
         case Q_EXIT_SIG: {
-            printf("BOOT_CHECK: exit\n");
+            ESP_LOGI(TAG, "BOOT_CHECK: exit");
             status_ = Q_HANDLED();
             break;
         }
@@ -200,7 +282,7 @@ static QState SysMngt_BOOT_BTN_CHECK(SysMngt * const me, QEvt const * const e) {
             QTimeEvt_disarm(&me->tickTimeEvt);
             QTimeEvt_armX(&me->tickTimeEvt, SYS_MNGT_PROV_BTN_TICK_INT, SYS_MNGT_PROV_BTN_TICK_INT);
 
-            printf("BOOT_BTN_CHECK: entry\n");
+            ESP_LOGI(TAG, "BOOT_BTN_CHECK: entry");
             status_ = Q_HANDLED();
             break;
         }
@@ -209,7 +291,7 @@ static QState SysMngt_BOOT_BTN_CHECK(SysMngt * const me, QEvt const * const e) {
             QTimeEvt_disarm(&me->tickTimeEvt);
             QTimeEvt_armX(&me->tickTimeEvt, SYS_MNGT_TICK_INTERVAL_MS, SYS_MNGT_TICK_INTERVAL_MS);
 
-            printf("BOOT_BTN_CHECK: exit\n");
+            ESP_LOGI(TAG, "BOOT_BTN_CHECK: exit");
             status_ = Q_HANDLED();
             break;
         }
@@ -242,13 +324,13 @@ static QState SysMngt_BOOT_CRED_CHECK(SysMngt * const me, QEvt const * const e) 
             // mock
             me->isCredentialValid = true;
 
-            printf("BOOT_CRED_CHECK: entry\n");
+            ESP_LOGI(TAG, "BOOT_CRED_CHECK: entry");
             status_ = Q_HANDLED();
             break;
         }
         /*${components::SystemManagement::SysMngt::SM::TOP::BOOT_CHECK::BOOT_CRED_CHECK} */
         case Q_EXIT_SIG: {
-            printf("BOOT_CRED_CHECK: exit\n");
+            ESP_LOGI(TAG, "BOOT_CRED_CHECK: exit");
             status_ = Q_HANDLED();
             break;
         }
@@ -277,13 +359,17 @@ static QState SysMngt_PROVISION(SysMngt * const me, QEvt const * const e) {
     switch (e->sig) {
         /*${components::SystemManagement::SysMngt::SM::TOP::PROVISION} */
         case Q_ENTRY_SIG: {
-            printf("PROVISION: entry\n");
+            ESP_LOGI(TAG, "PROVISION: entry");
+
+            QEvt *pEvt = Q_NEW(QEvt, START_PROVISION_SIG);
+            QHSM_DISPATCH(me->pProvision, pEvt);
+            QF_gc((QEvt *)pEvt);
             status_ = Q_HANDLED();
             break;
         }
         /*${components::SystemManagement::SysMngt::SM::TOP::PROVISION} */
         case Q_EXIT_SIG: {
-            printf("PROVISION: exit\n");
+            ESP_LOGI(TAG, "PROVISION: exit");
             status_ = Q_HANDLED();
             break;
         }
@@ -300,13 +386,13 @@ static QState SysMngt_NORMAL(SysMngt * const me, QEvt const * const e) {
     switch (e->sig) {
         /*${components::SystemManagement::SysMngt::SM::TOP::NORMAL} */
         case Q_ENTRY_SIG: {
-            printf("NORMAL: entry\n");
+            ESP_LOGI(TAG, "NORMAL: entry");
             status_ = Q_HANDLED();
             break;
         }
         /*${components::SystemManagement::SysMngt::SM::TOP::NORMAL} */
         case Q_EXIT_SIG: {
-            printf("NORMAL: exit\n");
+            ESP_LOGI(TAG, "NORMAL: exit");
             status_ = Q_HANDLED();
             break;
         }

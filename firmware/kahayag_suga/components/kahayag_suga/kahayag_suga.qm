@@ -24,6 +24,8 @@ enum testSignal {
     GET_SIGNAL_DICTIONARY_SIG,
     /* Module Generic Signal */
     TICK_SIG,
+    /* Provision */
+    START_PROVISION_SIG,
 
     MAX_SIG
 };
@@ -35,7 +37,8 @@ enum testSignal {
 #define PRIORITY_LIST_H
 
 enum task_priority {
-    PRIORITY_QSPY_TX = tskIDLE_PRIORITY + 1,
+    PRIORITY_WORKER = tskIDLE_PRIORITY + 1,
+    PRIORITY_QSPY_TX,
     PRIORITY_QSPY_RX,
     PRIORITY_IN_OUT,
     PRIORITY_SYS_MNGT,
@@ -49,6 +52,69 @@ enum task_priority {
 Q_ASSERT_COMPILE(PRIORITY_MAX &lt; configMAX_PRIORITIES);
 
 #endif /* PRIORITY_LIST_H */</text>
+  </file>
+  <file name="worker.c">
+   <text>#include &quot;qpc.h&quot;
+#include &quot;freertos/FreeRTOS.h&quot;
+#include &quot;freertos/task.h&quot;
+#include &quot;worker.h&quot;
+#include &quot;esp_log.h&quot;
+#include &quot;soc/soc.h&quot;
+#include &quot;priorityList.h&quot;
+
+#define WORKER_DEFAULT_STACK_SIZE        (2*configIDLE_TASK_STACK_SIZE)
+
+static const char *TAG = &quot;worker&quot;;
+
+static void workTask(void *pParam)
+{
+    WorkFunction fcn = (WorkFunction)pParam;
+    if(fcn != NULL) {
+        (*fcn)();
+    } else {
+        ESP_LOGE(TAG, &quot;Invalid Worker Function Pointer&quot;);
+    }
+    vTaskDelete(NULL);
+}
+
+esp_err_t doWork(WorkFunction fcn)
+{
+    esp_err_t retval = ESP_OK;
+
+#if defined( CONFIG_QPC_PINNED_TO_CORE_0 )
+    BaseType_t xCoreId = PRO_CPU_NUM;
+#elif defined( CONFIG_QPC_PINNED_TO_CORE_1)
+    BaseType_t xCoreId = APP_CPU_NUM;
+#else
+    BaseType_t xCoreId = tskNO_AFFINITY;
+#endif
+
+    /* Create Worker Thread */
+    if(pdPASS != xTaskCreatePinnedToCore(
+                    workTask,
+                    &quot;workTask&quot;,
+                    WORKER_DEFAULT_STACK_SIZE,
+                    (void *) fcn,
+                    PRIORITY_WORKER,
+                    NULL,
+                    xCoreId)) {
+        return ESP_FAIL;
+    }
+
+    return (retval);
+}</text>
+  </file>
+  <file name="worker.h">
+   <text>#ifndef __QPC_WORKER_H__
+#define __QPC_WORKER_H__
+
+#include &quot;esp_err.h&quot;
+
+typedef void (*WorkFunction)(void);
+
+esp_err_t doWork(WorkFunction fcn);
+
+#endif /* __QPC_WORKER_H__ */</text>
   </file>
  </directory>
 </model>

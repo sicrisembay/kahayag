@@ -19,7 +19,6 @@
     <entry>QTimeEvt_armX(&amp;me-&gt;tickTimeEvt, INOUT_TICK_INTERVAL_MS, INOUT_TICK_INTERVAL_MS);</entry>
     <tran trig="TICK">
      <action>uint32_t idx;
-static uint32_t testCnt = 0;
 InputEvt * pEvt;
 
 for(idx = 0; idx &lt; N_INPUT_ID; idx++) {

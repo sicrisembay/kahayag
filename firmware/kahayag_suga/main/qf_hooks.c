@@ -10,15 +10,17 @@ static QSTimeCtr QS_tickTime_;
 static QSTimeCtr QS_tickPeriod_;
 #endif /* #ifdef Q_SPY */
 
+static const char *TAG = "qf_hooks";
+
 void QF_onStartup(void)
 {
     /* Register Tick Hook */
 
 }
 
-void Q_onAssert(char_t const * const module, int_t location)
+IRAM_ATTR void Q_onAssert(char_t const * const module, int_t location)
 {
-	printf("Q_onAssert: module:%s loc:%d\n", module, location);
+    ESP_LOGE(TAG, "Q_onAssert: module:%s loc:%d\n", module, location);
 }
 
 #ifdef Q_SPY
@@ -99,7 +101,7 @@ void QS_onCleanup(void)
 }
 
 
-QSTimeCtr QS_onGetTime(void)
+IRAM_ATTR QSTimeCtr QS_onGetTime(void)
 {
     return xTaskGetTickCount();
 }

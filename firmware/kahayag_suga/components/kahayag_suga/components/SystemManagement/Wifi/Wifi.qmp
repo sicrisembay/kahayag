@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package name="wifi" stereotype="0x02">
+ <class name="Wifi" superclass="qpc::QHsm">
+  <attribute name="pParent" type="QHsm *" visibility="0x02" properties="0x00"/>
+  <attribute name="hookFunc[MAX_WIFI_HOOK]" type="Wifi_HookFunction" visibility="0x02" properties="0x00"/>
+  <statechart properties="0x03">
+   <initial target="../1">
+    <initial_glyph conn="7,4,5,0,12,4">
+     <action box="0,-2,10,2"/>
+    </initial_glyph>
+   </initial>
+   <state name="TOP">
+    <entry>ESP_LOGI(TAG, &quot;Initialize networking stack&quot;);
+tcpip_adapter_init();
+
+ESP_LOGI(TAG, &quot;Set event handling&quot;);
+ESP_ERROR_CHECK(esp_event_loop_init(Wifi_EventHandler, NULL));
+</entry>
+    <state_glyph node="6,8,49,20">
+     <entry box="1,2,6,2"/>
+    </state_glyph>
+   </state>
+   <state_diagram size="64,36"/>
+  </statechart>
+ </class>
+ <attribute name="TAG" type="const char *" visibility="0x02" properties="0x00">
+  <code>=&quot;WIFI_QHSM&quot;;</code>
+ </attribute>
+ <operation name="Wifi_ctor" type="QHsm *" visibility="0x00" properties="0x00">
+  <parameter name="parent" type="QHsm *"/>
+  <code>static uint8_t bInitDone = (uint8_t)0;
+int idx = 0;
+Wifi *me;
+
+if(bInitDone == (uint8_t)0) {
+    me = &amp;l_Wifi;
+    /* Call constructor */
+    QHsm_ctor(&amp;me-&gt;super, Q_STATE_CAST(&amp;Wifi_initial));
+
+    /* Call orthogonal Component constructor */
+
+    /* Call Timer Constructor */
+
+    /* Initialize members */
+    me-&gt;pParent = parent;
+    for(idx = 0; idx &lt; MAX_WIFI_HOOK; idx++) {
+        me-&gt;hookFunc[idx] = NULL;
+    }
+
+    bInitDone = (uint8_t)1;
+}
+
+return(&amp;me-&gt;super);</code>
+ </operation>
+ <operation name="Wifi_EventHandler" type="esp_err_t" visibility="0x02" properties="0x00">
+  <parameter name="ctx" type="void *"/>
+  <parameter name="event" type="system_event_t *"/>
+  <code>int idx = 0;
+Wifi * me = &amp;l_Wifi;
+esp_err_t retval;
+
+/* Invoke Hook event handler first */
+for(idx = 0; idx &lt; MAX_WIFI_HOOK; idx++) {
+    if(me-&gt;hookFunc[idx] != NULL) {
+        retval = (*(me-&gt;hookFunc[idx]))(ctx, event);
+        if(retval != ESP_OK) {
+            ESP_LOGE(TAG, &quot;Error returned by hookFunc&quot;);
+        }
+    }
+}
+
+switch(event-&gt;event_id) {
+case SYSTEM_EVENT_AP_START:
+    ESP_LOGI(TAG, &quot;SoftAP started&quot;);
+    break;
+case SYSTEM_EVENT_AP_STOP:
+    ESP_LOGI(TAG, &quot;SoftAP stopped&quot;);
+    break;
+case SYSTEM_EVENT_STA_START:
+    esp_wifi_connect();
+    break;
+case SYSTEM_EVENT_STA_GOT_IP:
+    ESP_LOGI(TAG, &quot;got ip:%s&quot;,
+             ip4addr_ntoa(&amp;event-&gt;event_info.got_ip.ip_info.ip));
+    break;
+case SYSTEM_EVENT_AP_STACONNECTED:
+    ESP_LOGI(TAG, &quot;station:&quot;MACSTR&quot; join, AID=%d&quot;,
+             MAC2STR(event-&gt;event_info.sta_connected.mac),
+             event-&gt;event_info.sta_connected.aid);
+    break;
+case SYSTEM_EVENT_AP_STADISCONNECTED:
+    ESP_LOGI(TAG, &quot;station:&quot;MACSTR&quot;leave, AID=%d&quot;,
+             MAC2STR(event-&gt;event_info.sta_disconnected.mac),
+             event-&gt;event_info.sta_disconnected.aid);
+    break;
+case SYSTEM_EVENT_STA_DISCONNECTED:
+    break;
+default:
+    break;
+}
+return ESP_OK;</code>
+ </operation>
+ <operation name="Wifi_AddHook" type="esp_err_t" visibility="0x00" properties="0x00">
+  <parameter name="pfn" type="Wifi_HookFunction"/>
+  <code>int idx = 0;
+Wifi * me = &amp;l_Wifi;
+
+if(pfn == NULL) {
+    return ESP_ERR_INVALID_ARG;
+}
+
+for(idx = 0; idx &lt; MAX_WIFI_HOOK; idx++) {
+    if(me-&gt;hookFunc[idx] == NULL) {
+        me-&gt;hookFunc[idx] = pfn;
+        return ESP_OK;
+    }
+}
+
+return ESP_ERR_NOT_FOUND;</code>
+ </operation>
+ <operation name="Wifi_RemoveHook" type="esp_err_t" visibility="0x00" properties="0x00">
+  <parameter name="pfn" type="Wifi_HookFunction"/>
+  <code>int idx = 0;
+Wifi * me = &amp;l_Wifi;
+
+if(pfn == NULL) {
+    return ESP_ERR_INVALID_ARG;
+}
+
+for(idx = 0; idx &lt; MAX_WIFI_HOOK; idx++) {
+    if(me-&gt;hookFunc[idx] == pfn) {
+        me-&gt;hookFunc[idx] = NULL;
+        return ESP_OK;
+    }
+}
+
+return ESP_ERR_NOT_FOUND;</code>
+ </operation>
+ <directory name=".">
+  <file name="Wifi.h">
+   <text>#ifndef __KAHAYAG_WIFI_H__
+#define __KAHAYAG_WIFI_H__
+
+#include &quot;esp_event_loop.h&quot;
+
+#define MAX_WIFI_HOOK           (1)
+
+typedef esp_err_t (*Wifi_HookFunction)(void * ctx, system_event_t * event);
+
+$declare(components::SystemManagement::components::wifi::Wifi_ctor)
+$declare(components::SystemManagement::components::wifi::Wifi_AddHook)
+$declare(components::SystemManagement::components::wifi::Wifi_RemoveHook)
+
+#endif /* __KAHAYAG_WIFI_H__ */</text>
+  </file>
+  <file name="Wifi.c">
+   <text>#include &quot;qpc.h&quot;
+#include &quot;Wifi.h&quot;
+
+#include &quot;esp_log.h&quot;
+#include &quot;esp_wifi.h&quot;
+#include &quot;nvs_flash.h&quot;
+
+$declare(components::SystemManagement::components::wifi::Wifi)
+
+static Wifi l_Wifi;
+
+$define(components::SystemManagement::components::wifi::TAG)
+
+$define(components::SystemManagement::components::wifi::Wifi_ctor)
+$define(components::SystemManagement::components::wifi::Wifi_EventHandler)
+$define(components::SystemManagement::components::wifi::Wifi_AddHook)
+$define(components::SystemManagement::components::wifi::Wifi_RemoveHook)
+
+$define(components::SystemManagement::components::wifi::Wifi)</text>
+  </file>
+ </directory>
+</package>

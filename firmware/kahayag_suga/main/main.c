@@ -11,6 +11,8 @@
 #include "SysMngt.h"
 #include "InOut.h"
 
+#include "nvs_flash.h"
+
 /*
  * small size pool.
  * size: Evt
@@ -42,7 +44,7 @@ static QSubscrList subscrSto[MAX_PUB_SIG];
 
 void app_main()
 {
-    printf("Hello from app_main()\n");
+	ESP_ERROR_CHECK(nvs_flash_init());
 
     /* Print chip information */
     esp_chip_info_t chip_info;

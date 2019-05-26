@@ -1,11 +1,65 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <package name="SystemManagement" stereotype="0x02">
+ <package name="components" stereotype="0x02">
+  <package file="./components/SystemManagement/Wifi/Wifi.qmp"/>
+  <package file="./components/SystemManagement/Provision/Provision.qmp"/>
+ </package>
  <class name="SysMngt" superclass="qpc::QActive">
+  <attribute name="pWifi" type="QHsm *" visibility="0x02" properties="0x00"/>
+  <attribute name="pProvision" type="QHsm *" visibility="0x02" properties="0x00"/>
   <attribute name="tickTimeEvt" type="QTimeEvt" visibility="0x02" properties="0x00"/>
   <attribute name="userBtnId" type="INPUT_ID_T" visibility="0x02" properties="0x00"/>
   <attribute name="isCredentialValid" type="bool" visibility="0x02" properties="0x00"/>
-  <statechart properties="0x01">
+  <attribute name="provision_security" type="int" visibility="0x02" properties="0x00"/>
+  <operation name="event_handler" type="esp_err_t" visibility="0x02" properties="0x01">
+   <parameter name="ctx" type="void *"/>
+   <parameter name="event" type="system_event_t *"/>
+   <code>/* Invoke Provisioning event handler first */
+SysMngt_prov_event_handler(ctx, event);
+
+switch(event-&gt;event_id) {
+case SYSTEM_EVENT_AP_START:
+    ESP_LOGI(TAG, &quot;SoftAP started&quot;);
+    break;
+case SYSTEM_EVENT_AP_STOP:
+    ESP_LOGI(TAG, &quot;SoftAP stopped&quot;);
+    break;
+case SYSTEM_EVENT_STA_START:
+    esp_wifi_connect();
+    break;
+case SYSTEM_EVENT_STA_GOT_IP:
+    ESP_LOGI(TAG, &quot;got ip:%s&quot;,
+             ip4addr_ntoa(&amp;event-&gt;event_info.got_ip.ip_info.ip));
+    break;
+case SYSTEM_EVENT_AP_STACONNECTED:
+    ESP_LOGI(TAG, &quot;station:&quot;MACSTR&quot; join, AID=%d&quot;,
+             MAC2STR(event-&gt;event_info.sta_connected.mac),
+             event-&gt;event_info.sta_connected.aid);
+    break;
+case SYSTEM_EVENT_AP_STADISCONNECTED:
+    ESP_LOGI(TAG, &quot;station:&quot;MACSTR&quot;leave, AID=%d&quot;,
+             MAC2STR(event-&gt;event_info.sta_disconnected.mac),
+             event-&gt;event_info.sta_disconnected.aid);
+    break;
+case SYSTEM_EVENT_STA_DISCONNECTED:
+    break;
+default:
+    break;
+}
+return ESP_OK;</code>
+  </operation>
+  <operation name="prov_event_handler" type="esp_err_t" visibility="0x02" properties="0x01">
+   <parameter name="ctx" type="void *"/>
+   <parameter name="event" type="system_event_t *"/>
+   <code>return ESP_OK;</code>
+  </operation>
+  <statechart properties="0x03">
    <initial target="../1">
+    <action>QS_OBJ_DICTIONARY(&amp;l_SysMngt);
+
+/* Initial Transition of orthogonal component */
+QHSM_INIT(me-&gt;pWifi, (QEvt*)0);
+QHSM_INIT(me-&gt;pProvision, (QEvt*)0);</action>
     <initial_glyph conn="3,3,5,0,18,3">
      <action box="0,-2,10,2"/>
     </initial_glyph>
@@ -30,8 +84,8 @@ QTimeEvt_disarm(&amp;me-&gt;tickTimeEvt);</exit>
      </tran_glyph>
     </tran>
     <state name="BOOT_CHECK">
-     <entry>printf(&quot;BOOT_CHECK: entry\n&quot;);</entry>
-     <exit>printf(&quot;BOOT_CHECK: exit\n&quot;);</exit>
+     <entry>ESP_LOGI(TAG, &quot;BOOT_CHECK: entry&quot;);</entry>
+     <exit>ESP_LOGI(TAG, &quot;BOOT_CHECK: exit&quot;);</exit>
      <tran trig="TICK">
       <choice target="../../2">
        <guard brief="userBtnPressed">false == InOut_GetInputState(me-&gt;userBtnId)</guard>
@@ -58,13 +112,13 @@ QTimeEvt_disarm(&amp;me-&gt;tickTimeEvt);</exit>
       <entry>QTimeEvt_disarm(&amp;me-&gt;tickTimeEvt);
 QTimeEvt_armX(&amp;me-&gt;tickTimeEvt, SYS_MNGT_PROV_BTN_TICK_INT, SYS_MNGT_PROV_BTN_TICK_INT);
 
-printf(&quot;BOOT_BTN_CHECK: entry\n&quot;);</entry>
+ESP_LOGI(TAG, &quot;BOOT_BTN_CHECK: entry&quot;);</entry>
       <exit>QTimeEvt_disarm(&amp;me-&gt;tickTimeEvt);
 QTimeEvt_armX(&amp;me-&gt;tickTimeEvt, SYS_MNGT_TICK_INTERVAL_MS, SYS_MNGT_TICK_INTERVAL_MS);
 
-printf(&quot;BOOT_BTN_CHECK: exit\n&quot;);</exit>
+ESP_LOGI(TAG, &quot;BOOT_BTN_CHECK: exit&quot;);</exit>
       <tran trig="TICK" target="../../../3">
-       <tran_glyph conn="28,45,3,1,59,54,-10">
+       <tran_glyph conn="28,45,3,1,59,51,-10">
         <action box="0,-2,10,2"/>
        </tran_glyph>
       </tran>
@@ -85,18 +139,18 @@ printf(&quot;BOOT_BTN_CHECK: exit\n&quot;);</exit>
 // mock
 me-&gt;isCredentialValid = true;
 
-printf(&quot;BOOT_CRED_CHECK: entry\n&quot;);</entry>
-      <exit>printf(&quot;BOOT_CRED_CHECK: exit\n&quot;);</exit>
+ESP_LOGI(TAG, &quot;BOOT_CRED_CHECK: entry&quot;);</entry>
+      <exit>ESP_LOGI(TAG, &quot;BOOT_CRED_CHECK: exit&quot;);</exit>
       <tran trig="TICK">
        <choice target="../../../../3">
         <guard brief="InvalidCredential">!(me-&gt;isCredentialValid)</guard>
-        <choice_glyph conn="36,62,5,1,50,36,-9">
+        <choice_glyph conn="36,62,5,1,50,33,-9">
          <action box="2,-2,14,2"/>
         </choice_glyph>
        </choice>
        <choice target="../../../../4">
         <guard>else</guard>
-        <choice_glyph conn="36,62,4,1,3,45,16,-4">
+        <choice_glyph conn="36,62,4,1,3,45,13,-4">
          <action box="2,1,10,2"/>
         </choice_glyph>
        </choice>
@@ -109,23 +163,27 @@ printf(&quot;BOOT_CRED_CHECK: entry\n&quot;);</entry>
        <exit box="1,4,6,2"/>
       </state_glyph>
      </state>
-     <state_glyph node="5,25,72,46">
+     <state_glyph node="5,25,72,45">
       <entry box="1,2,6,2"/>
       <exit box="1,4,6,2"/>
      </state_glyph>
     </state>
     <state name="PROVISION">
-     <entry>printf(&quot;PROVISION: entry\n&quot;);</entry>
-     <exit>printf(&quot;PROVISION: exit\n&quot;);</exit>
-     <state_glyph node="5,95,72,16">
+     <entry>ESP_LOGI(TAG, &quot;PROVISION: entry&quot;);
+
+QEvt *pEvt = Q_NEW(QEvt, START_PROVISION_SIG);
+QHSM_DISPATCH(me-&gt;pProvision, pEvt);
+QF_gc((QEvt *)pEvt);</entry>
+     <exit>ESP_LOGI(TAG, &quot;PROVISION: exit&quot;);</exit>
+     <state_glyph node="5,92,72,16">
       <entry box="1,2,6,2"/>
       <exit box="1,4,6,2"/>
      </state_glyph>
     </state>
     <state name="NORMAL">
-     <entry>printf(&quot;NORMAL: entry\n&quot;);</entry>
-     <exit>printf(&quot;NORMAL: exit\n&quot;);</exit>
-     <state_glyph node="5,76,72,16">
+     <entry>ESP_LOGI(TAG, &quot;NORMAL: entry&quot;);</entry>
+     <exit>ESP_LOGI(TAG, &quot;NORMAL: exit&quot;);</exit>
+     <state_glyph node="5,73,72,16">
       <entry box="1,2,6,2"/>
       <exit box="1,4,6,2"/>
      </state_glyph>
@@ -142,6 +200,9 @@ printf(&quot;BOOT_CRED_CHECK: entry\n&quot;);</entry>
   <documentation>/** Opaque pointer to SysMngt AO */</documentation>
   <code>= &amp;l_SysMngt.super;</code>
  </attribute>
+ <attribute name="TAG" type="const char *" visibility="0x02" properties="0x00">
+  <code>=&quot;AppMngt&quot;;</code>
+ </attribute>
  <operation name="SysMgnt_ctor" type="void" visibility="0x00" properties="0x00">
   <code>static uint8_t bInitDone = (uint8_t)0;
 char taskName[16];
@@ -152,7 +213,8 @@ if(bInitDone == (uint8_t)0) {
     /* Call constructor */
     QActive_ctor(&amp;me-&gt;super, Q_STATE_CAST(&amp;SysMngt_initial));
     /* Call orthogonal Component constructor */
-
+    me-&gt;pWifi = Wifi_ctor(&amp;(me-&gt;super.super));
+    me-&gt;pProvision = Prov_ctor(&amp;(me-&gt;super.super));
     /* Call Timer Constructor */
     QTimeEvt_ctorX(&amp;me-&gt;tickTimeEvt,  &amp;me-&gt;super, TICK_SIG,  0U);
 
@@ -200,9 +262,23 @@ $declare(components::SystemManagement::SysMgnt_ctor)
 #include &quot;signalList.h&quot;
 #include &quot;priorityList.h&quot;
 #include &quot;SysMngt.h&quot;
+#include &quot;Wifi.h&quot;
+#include &quot;Provision.h&quot;
 #include &quot;InOut.h&quot;
 
+#include &quot;tcpip_adapter.h&quot;
+#include &quot;esp_event_loop.h&quot;
+#include &quot;esp_log.h&quot;
+#include &quot;esp_wifi.h&quot;
+
 Q_DEFINE_THIS_FILE
+
+#define SYS_MNGT_DEBUG  (1)
+#if(SYS_MNGT_DEBUG == 1)
+#define DEBUG_SYS_MNGT(x)    printf(x)
+#else
+#define DEBUG_SYS_MNGT(x)
+#endif /* #if(SYS_MNGT_DEBUG == 1) */
 
 $declare(components::SystemManagement::SysMngt)
 
@@ -212,6 +288,8 @@ static SysMngt l_SysMngt;
 static StackType_t sysMngtStack[2*configIDLE_TASK_STACK_SIZE];
 /* AO Queue */
 QEvt const * l_SysMngtQSto[64];
+
+$define(components::SystemManagement::TAG)
 
 $define(components::SystemManagement::AO_SysMngt)
 

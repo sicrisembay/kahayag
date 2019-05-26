@@ -164,7 +164,6 @@ static QState InOut_TOP(InOut * const me, QEvt const * const e) {
         /*${components::InputOutput::InOut::SM::TOP::TICK} */
         case TICK_SIG: {
             uint32_t idx;
-            static uint32_t testCnt = 0;
             InputEvt * pEvt;
 
             for(idx = 0; idx < N_INPUT_ID; idx++) {
