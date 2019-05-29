@@ -175,6 +175,12 @@ QEvt *pEvt = Q_NEW(QEvt, START_PROVISION_SIG);
 QHSM_DISPATCH(me-&gt;pProvision, pEvt);
 QF_gc((QEvt *)pEvt);</entry>
      <exit>ESP_LOGI(TAG, &quot;PROVISION: exit&quot;);</exit>
+     <tran trig="AP_STARTED, AP_START_FAILED">
+      <action>QHSM_DISPATCH(me-&gt;pProvision, e);</action>
+      <tran_glyph conn="5,100,3,-1,28">
+       <action box="0,-2,16,4"/>
+      </tran_glyph>
+     </tran>
      <state_glyph node="5,92,72,16">
       <entry box="1,2,6,2"/>
       <exit box="1,4,6,2"/>
@@ -214,7 +220,7 @@ if(bInitDone == (uint8_t)0) {
     QActive_ctor(&amp;me-&gt;super, Q_STATE_CAST(&amp;SysMngt_initial));
     /* Call orthogonal Component constructor */
     me-&gt;pWifi = Wifi_ctor(&amp;(me-&gt;super.super));
-    me-&gt;pProvision = Prov_ctor(&amp;(me-&gt;super.super));
+    me-&gt;pProvision = Prov_ctor(&amp;(me-&gt;super));
     /* Call Timer Constructor */
     QTimeEvt_ctorX(&amp;me-&gt;tickTimeEvt,  &amp;me-&gt;super, TICK_SIG,  0U);
 

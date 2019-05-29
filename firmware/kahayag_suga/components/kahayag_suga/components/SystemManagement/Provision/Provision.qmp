@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <package name="provision" stereotype="0x02">
  <class name="Provision" superclass="qpc::QHsm">
-  <attribute name="pParent" type="QHsm *" visibility="0x02" properties="0x00"/>
-  <attribute name="pcHdlr" type="protocomm_t *" visibility="0x02" properties="0x00"/>
+  <attribute name="pParent" type="QActive *" visibility="0x02" properties="0x00"/>
+  <attribute name="pc" type="protocomm_t *" visibility="0x02" properties="0x00"/>
   <attribute name="security" type="int" visibility="0x02" properties="0x00"/>
   <attribute name="pop" type="const protocomm_security_pop_t *" visibility="0x02" properties="0x00"/>
+  <attribute name="wifi_state" type="wifi_prov_sta_state_t" visibility="0x02" properties="0x00"/>
   <attribute name="wifi_disconnect_reason" type="wifi_prov_sta_fail_reason_t" visibility="0x02" properties="0x00"/>
   <attribute name="ssid[MAX_PROV_SSID_LEN + 1]" type="char" visibility="0x02" properties="0x00"/>
   <attribute name="password[MAX_PROV_PASS_LEN+1]" type="char" visibility="0x02" properties="0x00"/>
+  <attribute name="wifi_cfg" type="wifi_config_t *" visibility="0x02" properties="0x00"/>
   <statechart properties="0x03">
    <initial target="../1">
     <initial_glyph conn="6,4,5,0,6,4">
@@ -48,6 +50,20 @@ if(retval != ESP_OK) {
 }</entry>
      <exit>ESP_ERROR_CHECK(Wifi_RemoveHook(Prov_EventHandler));
 ESP_LOGI(TAG, &quot;ACTIVE exit&quot;);</exit>
+     <tran trig="AP_STARTED">
+      <action>ESP_LOGI(TAG, &quot;Wifi AP Started&quot;);
+ESP_LOGI(TAG, &quot;Start provisioning service&quot;);
+Prov_start_service();</action>
+      <tran_glyph conn="12,42,3,-1,21">
+       <action box="0,-2,13,2"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="AP_START_FAILED">
+      <action>ESP_LOGI(TAG, &quot;Wifi AP Start Failed&quot;);</action>
+      <tran_glyph conn="12,46,3,-1,21">
+       <action box="0,-2,16,2"/>
+      </tran_glyph>
+     </tran>
      <state_glyph node="12,32,49,20">
       <entry box="1,2,6,2"/>
       <exit box="1,4,6,2"/>
@@ -61,11 +77,17 @@ ESP_LOGI(TAG, &quot;ACTIVE exit&quot;);</exit>
  <attribute name="TAG" type="const char *" visibility="0x02" properties="0x00">
   <code>=&quot;PROV_QHSM&quot;;</code>
  </attribute>
+ <attribute name="wifi_prov_handlers" type="wifi_prov_config_handlers_t" visibility="0x02" properties="0x00">
+  <code>= {
+    .get_status_handler   = Prov_get_status_handler,
+    .set_config_handler   = Prov_set_config_handler,
+    .apply_config_handler = Prov_apply_config_handler,
+};</code>
+ </attribute>
  <operation name="Prov_ctor" type="QHsm *" visibility="0x00" properties="0x00">
-  <parameter name="parent" type="QHsm *"/>
+  <parameter name="parent" type="QActive * const"/>
   <code>static uint8_t bInitDone = (uint8_t)0;
 Provision *me;
-uint32_t idx;
 
 if(bInitDone == (uint8_t)0) {
     me = &amp;l_Provision;
@@ -78,7 +100,7 @@ if(bInitDone == (uint8_t)0) {
 
     /* Initialize members */
     me-&gt;pParent = parent;
-    me-&gt;pcHdlr = NULL;
+    me-&gt;pc = NULL;
     me-&gt;security = 0;
     me-&gt;pop = NULL;
     memset(me-&gt;ssid, 0, sizeof(me-&gt;ssid));
@@ -175,11 +197,14 @@ return ESP_OK;</code>
 esp_err_t err = ESP_OK;
 Provision *me = &amp;l_Provision;
 wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+QEvt *pEvt = NULL;
 
 /* Initialise WiFi with default configuration */
 err = esp_wifi_init(&amp;cfg);
 if (err != ESP_OK) {
     ESP_LOGE(TAG, &quot;Failed to init WiFi : %d&quot;, err);
+    pEvt = Q_NEW(QEvt, AP_START_FAILED_SIG);
+    QACTIVE_POST(me-&gt;pParent, pEvt, me);
     return;
 }
 
@@ -188,6 +213,8 @@ ESP_LOGI(TAG, &quot;Set WiFi mode to AP&quot;);
 err = esp_wifi_set_mode(WIFI_MODE_AP);
 if (err != ESP_OK) {
     ESP_LOGE(TAG, &quot;Failed to set WiFi mode : %d&quot;, err);
+    pEvt = Q_NEW(QEvt, AP_START_FAILED_SIG);
+    QACTIVE_POST(me-&gt;pParent, pEvt, me);
     return;
 }
 
@@ -223,15 +250,200 @@ ESP_LOGI(TAG, &quot;Configure WiFi AP&quot;);
 err = esp_wifi_set_config(ESP_IF_WIFI_AP, &amp;wifi_config);
 if (err != ESP_OK) {
     ESP_LOGE(TAG, &quot;Failed to set WiFi config : %d&quot;, err);
+    pEvt = Q_NEW(QEvt, AP_START_FAILED_SIG);
+    QACTIVE_POST(me-&gt;pParent, pEvt, me);
     return;
 }
 ESP_LOGI(TAG, &quot;Start WiFi&quot;);
 err = esp_wifi_start();
 if (err != ESP_OK) {
     ESP_LOGE(TAG, &quot;Failed to start WiFi : %d&quot;, err);
+    pEvt = Q_NEW(QEvt, AP_START_FAILED_SIG);
+    QACTIVE_POST(me-&gt;pParent, pEvt, me);
     return;
 }
+
+pEvt = Q_NEW(QEvt, AP_STARTED_SIG);
+QACTIVE_POST(me-&gt;pParent, pEvt, me);
 </code>
+ </operation>
+ <operation name="Prov_start_service" type="void" visibility="0x02" properties="0x00">
+  <code>Provision * me = &amp;l_Provision;
+QEvt * pEvt = NULL;
+
+/* Create new protocomm instance */
+me-&gt;pc = protocomm_new();
+if (me-&gt;pc == NULL) {
+    ESP_LOGE(TAG, &quot;Failed to create new protocomm instance&quot;);
+    pEvt = Q_NEW(QEvt, PROV_SERVICE_START_FAILED_SIG);
+    QACTIVE_POST(me-&gt;pParent, pEvt, me);
+    return;
+}
+
+/* Config for protocomm_httpd_start() */
+protocomm_httpd_config_t pc_config = PROTOCOMM_HTTPD_DEFAULT_CONFIG();
+
+/* Start protocomm server on top of HTTP */
+if (protocomm_httpd_start(me-&gt;pc, &amp;pc_config) != ESP_OK) {
+    ESP_LOGE(TAG, &quot;Failed to start protocomm HTTP server&quot;);
+    pEvt = Q_NEW(QEvt, PROV_SERVICE_START_FAILED_SIG);
+    QACTIVE_POST(me-&gt;pParent, pEvt, me);
+    return;
+}
+
+/* Set protocomm version verification endpoint for protocol */
+protocomm_set_version(me-&gt;pc, &quot;proto-ver&quot;, &quot;V0.1&quot;);
+
+/* Set protocomm security type for endpoint */
+if (me-&gt;security == 0) {
+    protocomm_set_security(me-&gt;pc, &quot;prov-session&quot;, &amp;protocomm_security0, NULL);
+} else if (me-&gt;security == 1) {
+    protocomm_set_security(me-&gt;pc, &quot;prov-session&quot;, &amp;protocomm_security1, me-&gt;pop);
+}
+
+/* Add endpoint for provisioning to set wifi station config */
+if (protocomm_add_endpoint(me-&gt;pc, &quot;prov-config&quot;,
+                           wifi_prov_config_data_handler,
+                           (void *) &amp;wifi_prov_handlers) != ESP_OK) {
+    ESP_LOGE(TAG, &quot;Failed to set provisioning endpoint&quot;);
+    protocomm_httpd_stop(me-&gt;pc);
+    pEvt = Q_NEW(QEvt, PROV_SERVICE_START_FAILED_SIG);
+    QACTIVE_POST(me-&gt;pParent, pEvt, me);
+    return;
+}</code>
+ </operation>
+ <operation name="Prov_get_status_handler" type="esp_err_t" visibility="0x02" properties="0x00">
+  <parameter name="resp_data" type="wifi_prov_config_get_data_t *"/>
+  <code>Provision * me = &amp;l_Provision;
+/* Initialise to zero */
+memset(resp_data, 0, sizeof(wifi_prov_config_get_data_t));
+
+if (Prov_get_wifi_state(&amp;resp_data-&gt;wifi_state) != ESP_OK) {
+    ESP_LOGW(TAG, &quot;Prov app not running&quot;);
+    return ESP_FAIL;
+}
+
+if (me-&gt;wifi_state == WIFI_PROV_STA_CONNECTED) {
+    ESP_LOGI(TAG, &quot;Connected state&quot;);
+
+    /* IP Addr assigned to STA */
+    tcpip_adapter_ip_info_t ip_info;
+    tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_STA, &amp;ip_info);
+    char *ip_addr = ip4addr_ntoa(&amp;ip_info.ip);
+    strcpy(resp_data-&gt;conn_info.ip_addr, ip_addr);
+
+    /* AP information to which STA is connected */
+    wifi_ap_record_t ap_info;
+    esp_wifi_sta_get_ap_info(&amp;ap_info);
+    memcpy(resp_data-&gt;conn_info.bssid, (char *)ap_info.bssid, sizeof(ap_info.bssid));
+    memcpy(resp_data-&gt;conn_info.ssid,  (char *)ap_info.ssid,  sizeof(ap_info.ssid));
+    resp_data-&gt;conn_info.channel   = ap_info.primary;
+    resp_data-&gt;conn_info.auth_mode = ap_info.authmode;
+} else if (me-&gt;wifi_state == WIFI_PROV_STA_DISCONNECTED) {
+    ESP_LOGI(TAG, &quot;Disconnected state&quot;);
+
+    /* If disconnected, convey reason */
+    Prov_get_wifi_disconnect_reason(&amp;resp_data-&gt;fail_reason);
+} else {
+    ESP_LOGI(TAG, &quot;Connecting state&quot;);
+}
+return ESP_OK;</code>
+ </operation>
+ <operation name="Prov_set_config_handler" type="esp_err_t" visibility="0x02" properties="0x00">
+  <parameter name="req_data" type="const wifi_prov_config_set_data_t *"/>
+  <code>Provision * me = &amp;l_Provision;
+
+if (me-&gt;wifi_cfg) {
+    free(me-&gt;wifi_cfg);
+    me-&gt;wifi_cfg = NULL;
+}
+
+me-&gt;wifi_cfg = (wifi_config_t *) calloc(1, sizeof(wifi_config_t));
+if (!(me-&gt;wifi_cfg)) {
+    ESP_LOGE(TAG, &quot;Unable to alloc wifi config&quot;);
+    return ESP_FAIL;
+}
+
+ESP_LOGI(TAG, &quot;WiFi Credentials Received : \n\tssid %s \n\tpassword %s&quot;,
+         req_data-&gt;ssid, req_data-&gt;password);
+memcpy((char *) me-&gt;wifi_cfg-&gt;sta.ssid, req_data-&gt;ssid,
+       strnlen(req_data-&gt;ssid, sizeof(me-&gt;wifi_cfg-&gt;sta.ssid)));
+memcpy((char *) me-&gt;wifi_cfg-&gt;sta.password, req_data-&gt;password,
+       strnlen(req_data-&gt;password, sizeof(me-&gt;wifi_cfg-&gt;sta.password)));
+return ESP_OK;</code>
+ </operation>
+ <operation name="Prov_apply_config_handler" type="esp_err_t" visibility="0x02" properties="0x00">
+  <code>Provision * me = &amp;l_Provision;
+
+if (!(me-&gt;wifi_cfg)) {
+    ESP_LOGE(TAG, &quot;WiFi config not set&quot;);
+    return ESP_FAIL;
+}
+
+Prov_configure_sta(me-&gt;wifi_cfg);
+ESP_LOGI(TAG, &quot;WiFi Credentials Applied&quot;);
+
+free(me-&gt;wifi_cfg);
+me-&gt;wifi_cfg = NULL;
+return ESP_OK;</code>
+ </operation>
+ <operation name="Prov_get_wifi_state" type="esp_err_t" visibility="0x02" properties="0x00">
+  <parameter name="state" type="wifi_prov_sta_state_t *"/>
+  <code>Provision *me = &amp;l_Provision;
+
+if (state == NULL) {
+    return ESP_FAIL;
+}
+
+*state = me-&gt;wifi_state;
+return ESP_OK;</code>
+ </operation>
+ <operation name="Prov_get_wifi_disconnect_reason" type="esp_err_t" visibility="0x02" properties="0x00">
+  <parameter name="reason" type="wifi_prov_sta_fail_reason_t *"/>
+  <code>Provision * me = &amp;l_Provision;
+
+if (reason == NULL) {
+    return ESP_FAIL;
+}
+
+if (me-&gt;wifi_state != WIFI_PROV_STA_DISCONNECTED) {
+    return ESP_FAIL;
+}
+
+*reason = me-&gt;wifi_disconnect_reason;
+return ESP_OK;</code>
+ </operation>
+ <operation name="Prov_configure_sta" type="esp_err_t" visibility="0x02" properties="0x00">
+  <parameter name="wifi_cfg" type="wifi_config_t *"/>
+  <code>Provision * me = &amp;l_Provision;
+
+/* Configure WiFi as both AP and Station */
+if (esp_wifi_set_mode(WIFI_MODE_APSTA) != ESP_OK) {
+    ESP_LOGE(TAG, &quot;Failed to set WiFi mode&quot;);
+    return ESP_FAIL;
+}
+/* Configure WiFi station with host credentials
+ * provided during provisioning */
+if (esp_wifi_set_config(ESP_IF_WIFI_STA, me-&gt;wifi_cfg) != ESP_OK) {
+    ESP_LOGE(TAG, &quot;Failed to set WiFi configuration&quot;);
+    return ESP_FAIL;
+}
+/* Restart WiFi */
+if (esp_wifi_start() != ESP_OK) {
+    ESP_LOGE(TAG, &quot;Failed to restart WiFi&quot;);
+    return ESP_FAIL;
+}
+/* Connect to AP */
+if (esp_wifi_connect() != ESP_OK) {
+    ESP_LOGE(TAG, &quot;Failed to connect WiFi&quot;);
+    return ESP_FAIL;
+}
+
+if (me) {
+    /* Reset wifi station state for provisioning app */
+    me-&gt;wifi_state = WIFI_PROV_STA_CONNECTING;
+}
+return ESP_OK;</code>
  </operation>
  <directory name=".">
   <file name="Provision.h">
@@ -255,19 +467,40 @@ $declare(components::SystemManagement::components::provision::Prov_ctor)
 #include &quot;esp_log.h&quot;
 #include &quot;esp_wifi.h&quot;
 #include &quot;protocomm.h&quot;
+#include &quot;protocomm_httpd.h&quot;
+#include &quot;protocomm_security0.h&quot;
+#include &quot;protocomm_security1.h&quot;
 #include &quot;wifi_provisioning/wifi_config.h&quot;
 
 #include &quot;string.h&quot;
 
 $declare(components::SystemManagement::components::provision::Provision)
 
-Provision l_Provision;
 
+Provision l_Provision;
 $define(components::SystemManagement::components::provision::TAG)
+
+$declare(components::SystemManagement::components::provision::Prov_get_status_handler)
+$declare(components::SystemManagement::components::provision::Prov_set_config_handler)
+$declare(components::SystemManagement::components::provision::Prov_get_wifi_state)
+$declare(components::SystemManagement::components::provision::Prov_get_wifi_disconnect_reason)
+$declare(components::SystemManagement::components::provision::Prov_apply_config_handler)
+$declare(components::SystemManagement::components::provision::Prov_configure_sta)
+
+$define(components::SystemManagement::components::provision::Prov_get_status_handler)
+$define(components::SystemManagement::components::provision::Prov_set_config_handler)
+$define(components::SystemManagement::components::provision::Prov_get_wifi_state)
+$define(components::SystemManagement::components::provision::wifi_prov_handlers)
+$define(components::SystemManagement::components::provision::Prov_get_wifi_disconnect_reason)
+$define(components::SystemManagement::components::provision::Prov_apply_config_handler)
+$define(components::SystemManagement::components::provision::Prov_configure_sta)
+
 
 $define(components::SystemManagement::components::provision::Prov_ctor)
 $define(components::SystemManagement::components::provision::Prov_EventHandler)
+
 $define(components::SystemManagement::components::provision::Prov_start_wifi_ap)
+$define(components::SystemManagement::components::provision::Prov_start_service)
 
 $define(components::SystemManagement::components::provision::Provision)
 </text>

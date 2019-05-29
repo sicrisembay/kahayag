@@ -105,7 +105,7 @@ void SysMgnt_ctor(void) {
         QActive_ctor(&me->super, Q_STATE_CAST(&SysMngt_initial));
         /* Call orthogonal Component constructor */
         me->pWifi = Wifi_ctor(&(me->super.super));
-        me->pProvision = Prov_ctor(&(me->super.super));
+        me->pProvision = Prov_ctor(&(me->super));
         /* Call Timer Constructor */
         QTimeEvt_ctorX(&me->tickTimeEvt,  &me->super, TICK_SIG,  0U);
 
@@ -370,6 +370,13 @@ static QState SysMngt_PROVISION(SysMngt * const me, QEvt const * const e) {
         /*${components::SystemManagement::SysMngt::SM::TOP::PROVISION} */
         case Q_EXIT_SIG: {
             ESP_LOGI(TAG, "PROVISION: exit");
+            status_ = Q_HANDLED();
+            break;
+        }
+        /*${components::SystemManagement::SysMngt::SM::TOP::PROVISION::AP_STARTED, AP_START_FAILED} */
+        case AP_STARTED_SIG: /* intentionally fall through */
+        case AP_START_FAILED_SIG: {
+            QHSM_DISPATCH(me->pProvision, e);
             status_ = Q_HANDLED();
             break;
         }

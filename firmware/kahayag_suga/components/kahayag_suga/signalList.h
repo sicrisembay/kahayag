@@ -35,6 +35,10 @@ enum testSignal {
     TICK_SIG,
     /* Provision */
     START_PROVISION_SIG,
+    AP_STARTED_SIG,
+    AP_START_FAILED_SIG,
+    PROV_SERVICE_STARTED_SIG,
+    PROV_SERVICE_START_FAILED_SIG,
 
     MAX_SIG
 };

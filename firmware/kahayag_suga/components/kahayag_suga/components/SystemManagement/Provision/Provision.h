@@ -24,7 +24,7 @@
 
 /*$declare${components::SystemManagement::components::provision::Prov_ctor} */
 /*${components::SystemManagement::components::provision::Prov_ctor} ........*/
-QHsm * Prov_ctor(QHsm * parent);
+QHsm * Prov_ctor(QActive * const parent);
 /*$enddecl${components::SystemManagement::components::provision::Prov_ctor} */
 
 #endif /* __KAHAYAG_PROVISION_H__ */
