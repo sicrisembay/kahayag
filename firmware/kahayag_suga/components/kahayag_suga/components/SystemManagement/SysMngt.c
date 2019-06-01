@@ -373,9 +373,13 @@ static QState SysMngt_PROVISION(SysMngt * const me, QEvt const * const e) {
             status_ = Q_HANDLED();
             break;
         }
-        /*${components::SystemManagement::SysMngt::SM::TOP::PROVISION::AP_STARTED, AP_START_FAILED} */
+        /*${components::SystemManagement::SysMngt::SM::TOP::PROVISION::AP_STARTED, AP_START_FAILED, PRO~} */
         case AP_STARTED_SIG: /* intentionally fall through */
-        case AP_START_FAILED_SIG: {
+        case AP_START_FAILED_SIG: /* intentionally fall through */
+        case PROV_SERVICE_TIMEOUT_SIG: /* intentionally fall through */
+        case PROV_SERVICE_STARTED_SIG: /* intentionally fall through */
+        case PROV_SERVICE_START_FAILED_SIG: /* intentionally fall through */
+        case PROV_SERVICE_STOPPED_SIG: {
             QHSM_DISPATCH(me->pProvision, e);
             status_ = Q_HANDLED();
             break;

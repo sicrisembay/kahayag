@@ -175,13 +175,13 @@ QEvt *pEvt = Q_NEW(QEvt, START_PROVISION_SIG);
 QHSM_DISPATCH(me-&gt;pProvision, pEvt);
 QF_gc((QEvt *)pEvt);</entry>
      <exit>ESP_LOGI(TAG, &quot;PROVISION: exit&quot;);</exit>
-     <tran trig="AP_STARTED, AP_START_FAILED">
-      <action>QHSM_DISPATCH(me-&gt;pProvision, e);</action>
+     <tran trig="AP_STARTED, AP_START_FAILED, PROV_SERVICE_TIMEOUT, PROV_SERVICE_STARTED,&#10;PROV_SERVICE_START_FAILED, PROV_SERVICE_STOPPED">
+      <action brief="DispatchToComponent">QHSM_DISPATCH(me-&gt;pProvision, e);</action>
       <tran_glyph conn="5,100,3,-1,28">
-       <action box="0,-2,16,4"/>
+       <action box="0,0,25,12"/>
       </tran_glyph>
      </tran>
-     <state_glyph node="5,92,72,16">
+     <state_glyph node="5,92,72,30">
       <entry box="1,2,6,2"/>
       <exit box="1,4,6,2"/>
      </state_glyph>
@@ -194,7 +194,7 @@ QF_gc((QEvt *)pEvt);</entry>
       <exit box="1,4,6,2"/>
      </state_glyph>
     </state>
-    <state_glyph node="2,6,89,109">
+    <state_glyph node="2,6,89,123">
      <entry box="1,2,6,2"/>
      <exit box="1,4,6,2"/>
     </state_glyph>

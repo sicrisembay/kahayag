@@ -5,7 +5,6 @@
 COMPONENT_DEPENDS := qpc
 
 COMPONENT_ADD_INCLUDEDIRS += .
-COMPONENT_SRCDIRS += .
 
 # System Management
 COMPONENT_ADD_INCLUDEDIRS += components/SystemManagement

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <package name="provision" stereotype="0x02">
  <class name="Provision" superclass="qpc::QHsm">
+  <attribute name="timeoutEvt" type="QTimeEvt" visibility="0x02" properties="0x00"/>
   <attribute name="pParent" type="QActive *" visibility="0x02" properties="0x00"/>
   <attribute name="pc" type="protocomm_t *" visibility="0x02" properties="0x00"/>
   <attribute name="security" type="int" visibility="0x02" properties="0x00"/>
@@ -26,7 +27,7 @@
      <entry>ESP_LOGI(TAG, &quot;INACTIVE entry&quot;);</entry>
      <exit>ESP_LOGI(TAG, &quot;INACTIVE exit&quot;);</exit>
      <tran trig="START_PROVISION" target="../../2">
-      <tran_glyph conn="12,22,3,1,62,18,-13">
+      <tran_glyph conn="12,23,3,1,58,21,-9">
        <action box="0,-2,17,2"/>
       </tran_glyph>
      </tran>
@@ -37,41 +38,99 @@
     </state>
     <state name="ACTIVE">
      <entry>esp_err_t retval = ESP_OK;
+QEvt *pEvt = NULL;
 
 ESP_LOGI(TAG, &quot;ACTIVE: entry&quot;);
 
 ESP_LOGI(TAG, &quot;Starting WiFi SoftAP provisioning&quot;);
 ESP_ERROR_CHECK(Wifi_AddHook(Prov_EventHandler));
 
-/* Start Provisioning */
+/* Start Wifi AP */
 retval = doWork(Prov_start_wifi_ap);
 if(retval != ESP_OK) {
-    ESP_LOGE(TAG, &quot;Failed on starting wifi ap&quot;);
-}</entry>
-     <exit>ESP_ERROR_CHECK(Wifi_RemoveHook(Prov_EventHandler));
-ESP_LOGI(TAG, &quot;ACTIVE exit&quot;);</exit>
-     <tran trig="AP_STARTED">
-      <action>ESP_LOGI(TAG, &quot;Wifi AP Started&quot;);
-ESP_LOGI(TAG, &quot;Start provisioning service&quot;);
-Prov_start_service();</action>
-      <tran_glyph conn="12,42,3,-1,21">
+    ESP_LOGE(TAG, &quot;Failed to create worker thread for Prov_start_wifi_ap&quot;);
+    pEvt = Q_NEW(QEvt, AP_START_FAILED_SIG);
+    QACTIVE_POST(me-&gt;pParent, pEvt, me);
+}
+
+/* Arm Timeout Timer, One-shot */
+QTimeEvt_armX(&amp;me-&gt;timeoutEvt, PROVISION_TIMEOUT, 0);</entry>
+     <exit>ESP_LOGI(TAG, &quot;ACTIVE exit&quot;);
+
+ESP_ERROR_CHECK(Wifi_RemoveHook(Prov_EventHandler));
+
+/* Disarm Timeout Timer */
+QTimeEvt_disarm(&amp;me-&gt;timeoutEvt);</exit>
+     <tran trig="AP_STARTED" target="../3">
+      <action>ESP_LOGI(TAG, &quot;Wifi AP Started&quot;);</action>
+      <tran_glyph conn="12,47,3,3,14">
        <action box="0,-2,13,2"/>
       </tran_glyph>
      </tran>
-     <tran trig="AP_START_FAILED">
+     <tran trig="AP_START_FAILED" target="../../1">
       <action>ESP_LOGI(TAG, &quot;Wifi AP Start Failed&quot;);</action>
-      <tran_glyph conn="12,46,3,-1,21">
+      <tran_glyph conn="12,40,3,1,56,-14,-7">
        <action box="0,-2,16,2"/>
       </tran_glyph>
      </tran>
-     <state_glyph node="12,32,49,20">
+     <tran trig="PROV_SERVICE_TIMEOUT" target="../../1">
+      <tran_glyph conn="12,42,3,1,57,-17,-8">
+       <action box="0,-2,21,2"/>
+      </tran_glyph>
+     </tran>
+     <state name="SERVICE_ACTIVE">
+      <entry>esp_err_t retval = ESP_OK;
+QEvt *pEvt = NULL;
+
+ESP_LOGI(TAG, &quot;SERVICE_ACTIVE: Entry&quot;);
+ESP_LOGI(TAG, &quot;Start provisioning service&quot;);
+/* Rearm one shot timeout timer */
+QTimeEvt_rearm(&amp;me-&gt;timeoutEvt, PROVISION_TIMEOUT);
+/* start provisioning service */
+retval = doWork(Prov_start_service);
+if(retval != ESP_OK) {
+    pEvt = Q_NEW(QEvt, PROV_SERVICE_START_FAILED_SIG);
+    QACTIVE_POST(me-&gt;pParent, pEvt, me);
+}</entry>
+      <exit>ESP_LOGI(TAG, &quot;SERVICE_ACTIVE: Exit&quot;);</exit>
+      <tran trig="PROV_SERVICE_START_FAILED" target="../../../1">
+       <action>ESP_LOGE(TAG, &quot;Failed to create worker thread for Prov_start_service&quot;);</action>
+       <tran_glyph conn="26,50,3,1,46,-29,-11">
+        <action box="0,-2,25,2"/>
+       </tran_glyph>
+      </tran>
+      <tran trig="PROV_SERVICE_STOPPED" target="../../../1">
+       <action>ESP_LOGI(TAG, &quot;Provisioning service stopped&quot;);</action>
+       <tran_glyph conn="26,52,3,1,48,-32,-13">
+        <action box="0,-2,23,2"/>
+       </tran_glyph>
+      </tran>
+      <tran trig="PROV_SERVICE_STARTED">
+       <action>ESP_LOGI(TAG, &quot;Provisioning service started&quot;);</action>
+       <tran_glyph conn="26,54,3,-1,22">
+        <action box="0,-2,21,2"/>
+       </tran_glyph>
+      </tran>
+      <tran trig="PROV_SERVICE_TIMEOUT">
+       <action>ESP_LOGI(TAG, &quot;Stopping Provision Service&quot;);
+doWork(Prov_stop_service);</action>
+       <tran_glyph conn="26,56,3,-1,22">
+        <action box="0,-2,21,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="26,43,32,21">
+       <entry box="1,2,6,2"/>
+       <exit box="1,4,6,2"/>
+      </state_glyph>
+     </state>
+     <state_glyph node="12,32,49,39">
       <entry box="1,2,6,2"/>
       <exit box="1,4,6,2"/>
      </state_glyph>
     </state>
-    <state_glyph node="6,8,72,46"/>
+    <state_glyph node="6,8,72,70"/>
    </state>
-   <state_diagram size="80,56"/>
+   <state_diagram size="80,80"/>
   </statechart>
  </class>
  <attribute name="TAG" type="const char *" visibility="0x02" properties="0x00">
@@ -97,6 +156,7 @@ if(bInitDone == (uint8_t)0) {
     /* Call orthogonal Component constructor */
 
     /* Call Timer Constructor */
+    QTimeEvt_ctorX(&amp;me-&gt;timeoutEvt, parent, PROV_SERVICE_TIMEOUT_SIG, 0U);
 
     /* Initialize members */
     me-&gt;pParent = parent;
@@ -124,9 +184,9 @@ system_event_info_t *info = &amp;event-&gt;event_info;
 /* If pointer to provisioning application data is NULL
  * then provisioning is not running, therefore return without
  * error */
-//if (!g_prov) {
-//    return ESP_OK;
-//}
+if (!me) {
+    return ESP_OK;
+}
 
 switch(event-&gt;event_id) {
 case SYSTEM_EVENT_STA_START:
@@ -135,32 +195,30 @@ case SYSTEM_EVENT_STA_START:
      * device is restarted as both AP and Station.
      * Once station starts, wait for connection to
      * establish with configured host SSID and password */
-//    g_prov-&gt;wifi_state = WIFI_PROV_STA_CONNECTING;
+    me-&gt;wifi_state = WIFI_PROV_STA_CONNECTING;
     break;
 
 case SYSTEM_EVENT_STA_GOT_IP:
     ESP_LOGI(TAG, &quot;STA Got IP&quot;);
     /* Station got IP. That means configuraion is successful.
      * Schedule timer to stop provisioning app after 30 seconds. */
-//    g_prov-&gt;wifi_state = WIFI_PROV_STA_CONNECTED;
-//    if (g_prov &amp;&amp; g_prov-&gt;timer) {
-        /* Note that, after restarting the WiFi in Station + AP mode, the
-         * user gets disconnected from the AP for a while. But at the same
-         * time, the user app requests for status update from the device
-         * to verify that the provisioning was successful. Therefore, the
-         * turning off of the AP must be delayed long enough for the user
-         * to reconnect and get STA connection status from the device.
-         * Otherwise, the AP will be turned off before the user can
-         * reconnect and thus the user app will see connection timed out,
-         * signalling a failure in provisioning. */
-//        esp_timer_start_once(g_prov-&gt;timer, 30000*1000U);
-//    }
+    me-&gt;wifi_state = WIFI_PROV_STA_CONNECTED;
+    /* Note that, after restarting the WiFi in Station + AP mode, the
+     * user gets disconnected from the AP for a while. But at the same
+     * time, the user app requests for status update from the device
+     * to verify that the provisioning was successful. Therefore, the
+     * turning off of the AP must be delayed long enough for the user
+     * to reconnect and get STA connection status from the device.
+     * Otherwise, the AP will be turned off before the user can
+     * reconnect and thus the user app will see connection timed out,
+     * signalling a failure in provisioning. */
+    QTimeEvt_rearm(&amp;me-&gt;timeoutEvt, PROVISION_TIMEOUT);
     break;
 
 case SYSTEM_EVENT_STA_DISCONNECTED:
     ESP_LOGE(TAG, &quot;STA Disconnected&quot;);
     /* Station couldn't connect to configured host SSID */
-//    g_prov-&gt;wifi_state = WIFI_PROV_STA_DISCONNECTED;
+    me-&gt;wifi_state = WIFI_PROV_STA_DISCONNECTED;
     ESP_LOGE(TAG, &quot;Disconnect reason : %d&quot;, info-&gt;disconnected.reason);
 
     /* Set code corresponding to the reason for disconnection */
@@ -181,8 +239,8 @@ case SYSTEM_EVENT_STA_DISCONNECTED:
     default:
         /* If none of the expected reasons,
          * retry connecting to host SSID */
-//        g_prov-&gt;wifi_state = WIFI_PROV_STA_CONNECTING;
-//        esp_wifi_connect();
+        me-&gt;wifi_state = WIFI_PROV_STA_CONNECTING;
+        esp_wifi_connect();
         break;
     }
     break;
@@ -310,7 +368,29 @@ if (protocomm_add_endpoint(me-&gt;pc, &quot;prov-config&quot;,
     pEvt = Q_NEW(QEvt, PROV_SERVICE_START_FAILED_SIG);
     QACTIVE_POST(me-&gt;pParent, pEvt, me);
     return;
-}</code>
+}
+
+pEvt = Q_NEW(QEvt, PROV_SERVICE_STARTED_SIG);
+QACTIVE_POST(me-&gt;pParent, pEvt, me);
+</code>
+ </operation>
+ <operation name="Prov_stop_service" type="void" visibility="0x02" properties="0x00">
+  <code>Provision * me = &amp;l_Provision;
+QEvt * pEvt = NULL;
+
+/* Remove provisioning endpoint */
+protocomm_remove_endpoint(me-&gt;pc, &quot;prov-config&quot;);
+/* Unset provisioning security */
+protocomm_unset_security(me-&gt;pc, &quot;prov-session&quot;);
+/* Unset provisioning version endpoint */
+protocomm_unset_version(me-&gt;pc, &quot;proto-ver&quot;);
+/* Stop protocomm server */
+protocomm_httpd_stop(me-&gt;pc);
+/* Delete protocomm instance */
+protocomm_delete(me-&gt;pc);
+
+pEvt = Q_NEW(QEvt, PROV_SERVICE_STOPPED_SIG);
+QACTIVE_POST(me-&gt;pParent, pEvt, me);</code>
  </operation>
  <operation name="Prov_get_status_handler" type="esp_err_t" visibility="0x02" properties="0x00">
   <parameter name="resp_data" type="wifi_prov_config_get_data_t *"/>
@@ -453,6 +533,8 @@ return ESP_OK;</code>
 #define MAX_PROV_SSID_LEN        (16)
 #define MAX_PROV_PASS_LEN        (32)
 
+#define PROVISION_TIMEOUT        (60000)  /* SRS-0018 */
+
 $declare(components::SystemManagement::components::provision::Prov_ctor)
 
 #endif /* __KAHAYAG_PROVISION_H__ */</text>
@@ -501,6 +583,7 @@ $define(components::SystemManagement::components::provision::Prov_EventHandler)
 
 $define(components::SystemManagement::components::provision::Prov_start_wifi_ap)
 $define(components::SystemManagement::components::provision::Prov_start_service)
+$define(components::SystemManagement::components::provision::Prov_stop_service)
 
 $define(components::SystemManagement::components::provision::Provision)
 </text>

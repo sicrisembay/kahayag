@@ -22,6 +22,8 @@
 #define MAX_PROV_SSID_LEN        (16)
 #define MAX_PROV_PASS_LEN        (32)
 
+#define PROVISION_TIMEOUT        (60000)  /* SRS-0018 */
+
 /*$declare${components::SystemManagement::components::provision::Prov_ctor} */
 /*${components::SystemManagement::components::provision::Prov_ctor} ........*/
 QHsm * Prov_ctor(QActive * const parent);
