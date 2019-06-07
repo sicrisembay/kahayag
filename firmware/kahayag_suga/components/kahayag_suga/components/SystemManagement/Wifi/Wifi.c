@@ -18,6 +18,7 @@
 /*$endhead${components::SystemManagement::components::wifi::.::Wifi.c} ^^^^^*/
 #include "qpc.h"
 #include "Wifi.h"
+#include "string.h"
 
 #include "esp_log.h"
 #include "esp_wifi.h"
@@ -186,12 +187,27 @@ static QState Wifi_TOP(Wifi * const me, QEvt const * const e) {
     switch (e->sig) {
         /*${components::SystemManagement::components::wifi::Wifi::SM::TOP} */
         case Q_ENTRY_SIG: {
+            wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+            wifi_config_t wifi_cfg;
+
             ESP_LOGI(TAG, "Initialize networking stack");
             tcpip_adapter_init();
 
             ESP_LOGI(TAG, "Set event handling");
             ESP_ERROR_CHECK(esp_event_loop_init(Wifi_EventHandler, NULL));
 
+            if (esp_wifi_init(&cfg) != ESP_OK) {
+                ESP_LOGE(TAG, "Failed to init wifi");
+            }
+
+            if (esp_wifi_get_config(ESP_IF_WIFI_STA, &wifi_cfg) != ESP_OK) {
+                ESP_LOGE(TAG, "Failed to get WiFi Station Configuration");
+            }
+
+            if (strlen((const char*) wifi_cfg.sta.ssid)) {
+                ESP_LOGI(TAG, "Found ssid %s",     (const char*) wifi_cfg.sta.ssid);
+                ESP_LOGI(TAG, "Found password %s", (const char*) wifi_cfg.sta.password);
+            }
             status_ = Q_HANDLED();
             break;
         }

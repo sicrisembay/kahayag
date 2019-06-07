@@ -130,7 +130,7 @@ doWork(Prov_stop_service);</action>
     </state>
     <state_glyph node="6,8,72,70"/>
    </state>
-   <state_diagram size="80,80"/>
+   <state_diagram size="80,82"/>
   </statechart>
  </class>
  <attribute name="TAG" type="const char *" visibility="0x02" properties="0x00">
