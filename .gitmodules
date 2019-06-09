@@ -5,3 +5,6 @@
 	path = firmware/components/qpc
 	url = https://github.com/sicrisembay/qpc.git
 	branch = esp32_support
+[submodule "firmware/components/fixPt/libfixmath"]
+	path = firmware/components/fixPt/libfixmath
+	url = https://github.com/PetteriAimonen/libfixmath.git

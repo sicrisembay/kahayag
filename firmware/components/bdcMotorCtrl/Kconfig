@@ -1,0 +1,85 @@
+menu "Motor Configuration"
+
+  choice MOTOR_PINNED_TO_CORE_CHOICE
+    prompt "The cpu core which Motor run"
+    depends on !FREERTOS_UNICORE
+    help
+      Specify the cpu core to run motor.
+    config MOTOR_PINNED_TO_CORE_0
+      bool "Core 0 (PRO CPU)"
+    config MOTOR_PINNED_TO_CORE_1
+      bool "Core 1 (APP CPU)"
+    config MOTOR_NO_CORE_AFFINITY
+      bool "No Affinity (PRO or APP CPU)"
+    depends on !FREERTOS_UNICORE
+  endchoice #MOTOR_PINNED_TO_CORE_CHOICE
+  
+  config MOTOR_STACK_SIZE
+    int "Stack Size of Motor Task"
+    default 4096
+    help
+      Stack Size of Motor Task
+
+  config MOTOR_CTRL_INTERVAL
+    int "Control iteration interval, ms"
+    default 5
+    help
+      Control calculation interval
+
+  menu "Encoder Configuration"
+    menu "Encoder One"
+      config ENC1_CHA_IO_PIN
+        int "Encoder ChA IO Pin"
+        default 34
+        help
+          IO Pin connected to ChA of Encoder
+      config ENC1_CHB_IO_PIN
+        int "Encoder ChB IO Pin"
+        default 35
+        help
+          IO Pin connected to ChB of Encoder
+    endmenu #Encoder One
+    
+    menu "Encoder Two"
+      config ENC2_CHA_IO_PIN
+        int "Encoder ChA IO Pin"
+        default 32
+        help
+          IO Pin connected to ChA of Encoder
+      config ENC2_CHB_IO_PIN
+        int "Encoder ChB IO Pin"
+        default 33
+        help
+          IO Pin connected to ChB of Encoder
+    endmenu #Encoder Two
+    
+    menu "Encoder Three"
+      config ENC3_CHA_IO_PIN
+        int "Encoder ChA IO Pin"
+        default 25
+        help
+          IO Pin connected to ChA of Encoder
+      config ENC3_CHB_IO_PIN
+        int "Encoder ChB IO Pin"
+        default 26
+        help
+          IO Pin connected to ChB of Encoder
+    endmenu #Encoder Three
+    
+    menu "Encoder Four"
+      config ENC4_CHA_IO_PIN
+        int "Encoder ChA IO Pin"
+        default 22
+        help
+          IO Pin connected to ChA of Encoder
+      config ENC4_CHB_IO_PIN
+        int "Encoder ChB IO Pin"
+        default 23
+        help
+          IO Pin connected to ChB of Encoder
+    endmenu #Encoder Four
+  
+  endmenu #Encoder Configuration
+  
+endmenu #Motor Configuration
+

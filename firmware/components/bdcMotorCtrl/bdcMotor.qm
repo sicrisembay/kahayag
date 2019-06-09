@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model version="4.5.0" links="0">
+ <framework name="qpc"/>
+ <package name="bdcMotor" stereotype="0x02">
+  <class name="bdcMotor" superclass="qpc::QActive">
+   <attribute name="ctrlTimeEvt" type="QTimeEvt" visibility="0x02" properties="0x00"/>
+   <attribute name="encoderId" type="encoder_id_t" visibility="0x02" properties="0x00"/>
+   <attribute name="driverId" type="motor_driver_id_t" visibility="0x02" properties="0x00"/>
+   <attribute name="q16_dutyCycle" type="fix16_t" visibility="0x02" properties="0x00"/>
+   <statechart properties="0x00">
+    <initial target="../1">
+     <action>// Arm Timer for periodic generation of events
+QTimeEvt_armX(&amp;me-&gt;ctrlTimeEvt, CONFIG_MOTOR_CTRL_INTERVAL, CONFIG_MOTOR_CTRL_INTERVAL);</action>
+     <initial_glyph conn="6,4,5,0,8,4">
+      <action box="0,-2,10,2"/>
+     </initial_glyph>
+    </initial>
+    <state name="TOP">
+     <entry>ESP_LOGI(TAG, &quot;Entry Mot%02d&quot;, MOTOR_ID(me));</entry>
+     <initial target="../2">
+      <initial_glyph conn="10,22,5,0,7,4">
+       <action box="0,-2,10,2"/>
+      </initial_glyph>
+     </initial>
+     <tran trig="BDC_MOTOR_CTRL_TIMEOUT">
+      <action>/* calculate/Update encoder rate */
+encoder_update(me-&gt;encoderId);</action>
+      <tran_glyph conn="5,16,3,-1,23">
+       <action box="0,-2,24,2"/>
+      </tran_glyph>
+     </tran>
+     <state name="NORMAL">
+      <initial target="../1">
+       <initial_glyph conn="14,36,5,3,7">
+        <action box="0,-2,10,2"/>
+       </initial_glyph>
+      </initial>
+      <state name="STOPPED">
+       <state_glyph node="21,31,33,13"/>
+      </state>
+      <state name="RUNNING">
+       <state_glyph node="21,47,33,16"/>
+      </state>
+      <state name="STOPPING">
+       <state_glyph node="21,67,33,9"/>
+      </state>
+      <state_glyph node="10,26,55,54"/>
+     </state>
+     <state name="ERROR">
+      <state_glyph node="77,26,23,21"/>
+     </state>
+     <state_glyph node="5,8,98,75">
+      <entry box="1,2,6,2"/>
+     </state_glyph>
+    </state>
+    <state_diagram size="169,99"/>
+   </statechart>
+  </class>
+  <attribute name="AO_bdcMotor[MOTOR_ID_MAX]" type="QActive * const" visibility="0x00" properties="0x00">
+   <documentation>/* opaque pointer to motor Active Object */</documentation>
+   <code>= {
+    &amp;l_bdcMotor[MOTOR_ID_ONE].super,
+    &amp;l_bdcMotor[MOTOR_ID_TWO].super,
+    &amp;l_bdcMotor[MOTOR_ID_THREE].super,
+    &amp;l_bdcMotor[MOTOR_ID_FOUR].super,
+};</code>
+  </attribute>
+  <operation name="bdc_motor_ctor" type="void" visibility="0x00" properties="0x00">
+   <code>static uint32_t bInitDone = (uint32_t)0;
+uint32_t id = 0;
+bdcMotor *me;
+char taskName[16];
+
+if(!bInitDone) {
+    /* initialize encoder */
+    encoder_init();
+
+    for(id = 0; id &lt; MOTOR_ID_MAX; id++) {
+        me=&amp;l_bdcMotor[id];
+        /* Call constructors */
+        QActive_ctor(&amp;me-&gt;super, Q_STATE_CAST(&amp;bdcMotor_initial));
+        QTimeEvt_ctorX(&amp;me-&gt;ctrlTimeEvt, &amp;me-&gt;super, BDC_MOTOR_CTRL_TIMEOUT_SIG, 0U);
+
+        /* Initialize Members */
+        me-&gt;encoderId = MOTOR_ENCODER[id];
+        me-&gt;driverId = MOTOR_DRIVER[id];
+        me-&gt;q16_dutyCycle = (fix16_t)0;
+
+        /* Start active object */
+        sprintf(taskName, &quot;AO_MOT%02d&quot;, id);
+        QActive_setAttr(AO_bdcMotor[id], TASK_NAME_ATTR, taskName);
+        QACTIVE_START(
+            AO_bdcMotor[id],
+            MOTOR_PRIORITY[id],
+            l_bdcMotorQSto[id],
+            Q_DIM(l_bdcMotorQSto[id]),
+            bdcMotorStack[id],
+            sizeof(bdcMotorStack[id]),
+            (QEvt *)0);
+    }
+    bInitDone = (uint32_t)1;
+}</code>
+  </operation>
+ </package>
+ <directory name=".">
+  <directory name="include">
+   <file name="bdcMotor.h">
+    <text>#ifndef _BDC_MOTOR_H_
+#define _BDC_MOTOR_H_
+
+#include &quot;qpc.h&quot;
+#include &quot;fix16.h&quot;
+
+/*!
+ * @brief Selection of all available Motor ID
+ */
+typedef enum {
+    MOTOR_ID_ONE = 0,   /*!&lt; Motor 1 */
+    MOTOR_ID_TWO,       /*!&lt; Motor 2 */
+    MOTOR_ID_THREE,     /*!&lt; Motor 3 */
+    MOTOR_ID_FOUR,      /*!&lt; Motor 4 */
+    MOTOR_ID_MAX
+} motor_id_t;
+
+$declare(bdcMotor::AO_bdcMotor[MOTOR_ID_MAX])
+
+/* helper macro to provide the ID of motor &quot;me_&quot; */
+#define MOTOR_ID(me_)    ((uint8_t)((me_) - l_bdcMotor))
+
+$declare(bdcMotor::bdc_motor_ctor)
+
+#endif /* _BDC_MOTOR_H_ */</text>
+   </file>
+  </directory>
+  <file name="bdcMotor.c">
+   <text>#include &quot;qpc.h&quot;
+#include &quot;priorityList.h&quot;
+#include &quot;signalList.h&quot;
+#include &quot;bdcMotor.h&quot;
+#include &quot;encoder/encoder.h&quot;
+#include &quot;motor_driver/motor_driver.h&quot;
+#include &quot;esp_log.h&quot;
+
+Q_DEFINE_THIS_FILE
+
+static const char *TAG = &quot;bdcMotor&quot;;
+
+/* Motor Task Priority Configuration (MOTOR ID to Priority translation) */
+static UBaseType_t const MOTOR_PRIORITY[MOTOR_ID_MAX] = {
+    PRIORITY_MOTOR_ONE,
+    PRIORITY_MOTOR_TWO,
+    PRIORITY_MOTOR_THREE,
+    PRIORITY_MOTOR_FOUR,
+};
+
+/* Motor Encoder Configuration (MOTOR ID to ENCODER ID translation) */
+static encoder_id_t const MOTOR_ENCODER[MOTOR_ID_MAX] = {
+    ENCODER_ID_1,   // MOTOR_ONE uses ENCODER_ID_1
+    ENCODER_ID_2,   // MOTOR_TWO uses ENCODER_ID_2
+    ENCODER_ID_3,   // MOTOR_THREE uses ENCODER_ID_3
+    ENCODER_ID_4    // MOTOR_FOUR uses ENCODER_ID_4
+};
+
+/* Motor Driver Configuration (MOTOR ID to DRIVER ID translation) */
+static motor_driver_id_t const MOTOR_DRIVER[MOTOR_ID_MAX] = {
+    MOTOR_DRIVER_ID_1,  // MOTOR_ONE uses MOTOR_DRIVER_ID_1
+    MOTOR_DRIVER_ID_2,  // MOTOR_TWO uses MOTOR_DRIVER_ID_2
+    MOTOR_DRIVER_ID_3,  // MOTOR_THREE uses MOTOR_DRIVER_ID_3
+    MOTOR_DRIVER_ID_4   // MOTOR_FOUR uses MOTOR_DRIVER_ID_4
+};
+
+$declare(bdcMotor::bdcMotor)
+
+/* Local Object */
+static bdcMotor l_bdcMotor[MOTOR_ID_MAX];
+/* helper macro to provide the ID of motor &quot;me_&quot; */
+#define MOTOR_ID(me_)    ((uint8_t)((me_) - l_bdcMotor))
+
+static QEvt const l_bdcMotorQSto[MOTOR_ID_MAX][64];
+/* FreeRTOS stack for AO */
+static StackType_t bdcMotorStack[MOTOR_ID_MAX][CONFIG_MOTOR_STACK_SIZE];
+
+$define(bdcMotor::AO_bdcMotor[MOTOR_ID_MAX])
+
+$define(bdcMotor::bdc_motor_ctor)
+
+$define(bdcMotor::bdcMotor)
+</text>
+  </file>
+ </directory>
+</model>
