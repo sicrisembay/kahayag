@@ -113,6 +113,8 @@ void bdc_motor_ctor(void) {
     if(!bInitDone) {
         /* initialize encoder */
         encoder_init();
+        /* initialize motor driver */
+        motor_driver_init();
 
         for(id = 0; id < MOTOR_ID_MAX; id++) {
             me=&l_bdcMotor[id];

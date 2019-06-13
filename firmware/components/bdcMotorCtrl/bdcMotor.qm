@@ -7,7 +7,7 @@
    <attribute name="encoderId" type="encoder_id_t" visibility="0x02" properties="0x00"/>
    <attribute name="driverId" type="motor_driver_id_t" visibility="0x02" properties="0x00"/>
    <attribute name="q16_dutyCycle" type="fix16_t" visibility="0x02" properties="0x00"/>
-   <statechart properties="0x00">
+   <statechart properties="0x01">
     <initial target="../1">
      <action>// Arm Timer for periodic generation of events
 QTimeEvt_armX(&amp;me-&gt;ctrlTimeEvt, CONFIG_MOTOR_CTRL_INTERVAL, CONFIG_MOTOR_CTRL_INTERVAL);</action>
@@ -74,6 +74,8 @@ char taskName[16];
 if(!bInitDone) {
     /* initialize encoder */
     encoder_init();
+    /* initialize motor driver */
+    motor_driver_init();
 
     for(id = 0; id &lt; MOTOR_ID_MAX; id++) {
         me=&amp;l_bdcMotor[id];

@@ -4,6 +4,7 @@
 //*****************************************************************************
 // File dependencies.
 //*****************************************************************************
+#include "fix16.h"
 
 //*****************************************************************************
 // Public / Internal definitions.
@@ -23,5 +24,9 @@ typedef enum {
 // Public function prototypes.
 //*****************************************************************************
 
+void motor_driver_init(void);
+void motor_driver_safe_state(void);
+void motor_driver_set_value(motor_driver_id_t id, fix16_t value);
+fix16_t motor_driver_get_value(motor_driver_id_t id);
 
 #endif // End MOTOR_DRIVER_H

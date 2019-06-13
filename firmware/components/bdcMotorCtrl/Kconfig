@@ -26,60 +26,97 @@ menu "Motor Configuration"
     help
       Control calculation interval
 
-  menu "Encoder Configuration"
-    menu "Encoder One"
-      config ENC1_CHA_IO_PIN
-        int "Encoder ChA IO Pin"
-        default 34
-        help
-          IO Pin connected to ChA of Encoder
-      config ENC1_CHB_IO_PIN
-        int "Encoder ChB IO Pin"
-        default 35
-        help
-          IO Pin connected to ChB of Encoder
-    endmenu #Encoder One
-    
-    menu "Encoder Two"
-      config ENC2_CHA_IO_PIN
-        int "Encoder ChA IO Pin"
-        default 32
-        help
-          IO Pin connected to ChA of Encoder
-      config ENC2_CHB_IO_PIN
-        int "Encoder ChB IO Pin"
-        default 33
-        help
-          IO Pin connected to ChB of Encoder
-    endmenu #Encoder Two
-    
-    menu "Encoder Three"
-      config ENC3_CHA_IO_PIN
-        int "Encoder ChA IO Pin"
-        default 25
-        help
-          IO Pin connected to ChA of Encoder
-      config ENC3_CHB_IO_PIN
-        int "Encoder ChB IO Pin"
-        default 26
-        help
-          IO Pin connected to ChB of Encoder
-    endmenu #Encoder Three
-    
-    menu "Encoder Four"
-      config ENC4_CHA_IO_PIN
-        int "Encoder ChA IO Pin"
-        default 22
-        help
-          IO Pin connected to ChA of Encoder
-      config ENC4_CHB_IO_PIN
-        int "Encoder ChB IO Pin"
-        default 23
-        help
-          IO Pin connected to ChB of Encoder
-    endmenu #Encoder Four
+  menu "Motor One"
+    config PWM1_CHA_IO_PIN
+      int "PWMA IO Pin"
+      default 27
+      help
+        IO Pin connected to ChA PWM
+    config PWM1_CHB_IO_PIN
+      int "PWMB IO Pin"
+      default 14
+      help
+        IO Pin connected to ChB PWM
+    config ENC1_CHA_IO_PIN
+      int "Encoder ChA IO Pin"
+      default 34
+      help
+        IO Pin connected to ChA of Encoder
+    config ENC1_CHB_IO_PIN
+      int "Encoder ChB IO Pin"
+      default 35
+      help
+        IO Pin connected to ChB of Encoder
+  endmenu # "Motor One"
   
-  endmenu #Encoder Configuration
+  menu "Motor Two"
+    config PWM2_CHA_IO_PIN
+      int "PWMA IO Pin"
+      default 12
+      help
+        IO Pin connected to ChA PWM
+    config PWM2_CHB_IO_PIN
+      int "PWMB IO Pin"
+      default 13
+      help
+        IO Pin connected to ChB PWM
+    config ENC2_CHA_IO_PIN
+      int "Encoder ChA IO Pin"
+      default 32
+      help
+        IO Pin connected to ChA of Encoder
+    config ENC2_CHB_IO_PIN
+      int "Encoder ChB IO Pin"
+      default 33
+      help
+        IO Pin connected to ChB of Encoder
+  endmenu # "Motor Two"
+
+  menu "Motor Three"
+    config PWM3_CHA_IO_PIN
+      int "PWMA IO Pin"
+      default 18
+      help
+        IO Pin connected to ChA PWM
+    config PWM3_CHB_IO_PIN
+      int "PWMB IO Pin"
+      default 19
+      help
+        IO Pin connected to ChB PWM
+    config ENC3_CHA_IO_PIN
+      int "Encoder ChA IO Pin"
+      default 25
+      help
+        IO Pin connected to ChA of Encoder
+    config ENC3_CHB_IO_PIN
+      int "Encoder ChB IO Pin"
+      default 26
+      help
+        IO Pin connected to ChB of Encoder
+  endmenu # "Motor Three"
+
+  menu "Motor Four"
+    config PWM4_CHA_IO_PIN
+      int "PWMA IO Pin"
+      default 16
+      help
+        IO Pin connected to ChA PWM
+    config PWM4_CHB_IO_PIN
+      int "PWMB IO Pin"
+      default 17
+      help
+        IO Pin connected to ChB PWM
+    config ENC4_CHA_IO_PIN
+      int "Encoder ChA IO Pin"
+      default 22
+      help
+        IO Pin connected to ChA of Encoder
+    config ENC4_CHB_IO_PIN
+      int "Encoder ChB IO Pin"
+      default 23
+      help
+        IO Pin connected to ChB of Encoder
+  endmenu # "Motor Four"
   
 endmenu #Motor Configuration
 
