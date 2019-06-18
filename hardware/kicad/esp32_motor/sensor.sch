@@ -4,7 +4,7 @@ EELAYER 29 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
-Sheet 6 7
+Sheet 5 7
 Title ""
 Date ""
 Rev ""
@@ -101,8 +101,6 @@ F 3 "" H 5280 2420 50  0001 C CNN
 	1    5280 2420
 	1    0    0    -1  
 $EndComp
-Wire Wire Line
-	5280 2350 5280 2420
 Text GLabel 5070 1950 0    50   Input ~ 0
 3V3_OUT
 Wire Wire Line
@@ -251,32 +249,6 @@ Wire Wire Line
 	6760 3690 6760 4210
 Wire Wire Line
 	6760 4210 6000 4210
-$Comp
-L Connector:TestPoint TP602
-U 1 1 5D2FF32B
-P 7180 3190
-F 0 "TP602" V 7220 3400 50  0000 C CNN
-F 1 "TP" V 7140 3420 50  0000 C CNN
-F 2 "TestPoint:TestPoint_Pad_D1.5mm" H 7380 3190 50  0001 C CNN
-F 3 "~" H 7380 3190 50  0001 C CNN
-	1    7180 3190
-	0    1    1    0   
-$EndComp
-$Comp
-L Connector:TestPoint TP603
-U 1 1 5D2FF8C7
-P 7180 3290
-F 0 "TP603" V 7220 3500 50  0000 C CNN
-F 1 "TP" V 7140 3520 50  0000 C CNN
-F 2 "TestPoint:TestPoint_Pad_D1.5mm" H 7380 3290 50  0001 C CNN
-F 3 "~" H 7380 3290 50  0001 C CNN
-	1    7180 3290
-	0    1    1    0   
-$EndComp
-Wire Wire Line
-	6700 3190 7180 3190
-Wire Wire Line
-	6700 3290 7180 3290
 Wire Wire Line
 	3970 2500 4080 2500
 $Comp
@@ -314,4 +286,8 @@ Wire Wire Line
 	5240 3090 5300 3090
 Wire Wire Line
 	4940 3090 4800 3090
+Wire Wire Line
+	5280 2350 5280 2420
+NoConn ~ 6700 3190
+NoConn ~ 6700 3290
 $EndSCHEMATC
