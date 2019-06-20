@@ -5,11 +5,11 @@ EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
 Sheet 5 7
-Title ""
-Date ""
-Rev ""
-Comp ""
-Comment1 ""
+Title "ESP32 MOTOR BOARD"
+Date "2019-06-20"
+Rev "1"
+Comp "ZPL HACK PROJECT"
+Comment1 "Author: Sicris Rey Embay"
 Comment2 ""
 Comment3 ""
 Comment4 ""

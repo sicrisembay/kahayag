@@ -5,11 +5,11 @@ EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
 Sheet 2 7
-Title ""
-Date ""
-Rev ""
-Comp ""
-Comment1 ""
+Title "ESP32 MOTOR BOARD"
+Date "2019-06-20"
+Rev "1"
+Comp "ZPL HACK PROJECT"
+Comment1 "Author: Sicris Rey Embay"
 Comment2 ""
 Comment3 ""
 Comment4 ""
@@ -31,9 +31,9 @@ Text GLabel 6390 4580 2    50   Output ~ 0
 MOT2_INB
 Text GLabel 6390 3580 2    50   Output ~ 0
 MOT3_INA
-Text GLabel 6390 3680 2    50   Output ~ 0
+Text GLabel 6390 3080 2    50   Output ~ 0
 MOT3_INB
-Text GLabel 6390 2780 2    50   Output ~ 0
+Text GLabel 6390 3780 2    50   Output ~ 0
 MOT4_INB
 Text GLabel 6390 2980 2    50   Output ~ 0
 MOT4_INA
@@ -49,17 +49,17 @@ Text GLabel 6380 4080 2    50   Input ~ 0
 MOT3_ENCA
 Text GLabel 6380 4180 2    50   Input ~ 0
 MOT3_ENCB
-Text GLabel 6390 3080 2    50   Input ~ 0
+Text GLabel 6380 3680 2    50   Input ~ 0
 MOT4_ENCA
 Text GLabel 6370 3980 2    50   Input ~ 0
 MOT4_ENCB
-Text GLabel 6390 3380 2    50   Output ~ 0
+Text GLabel 6390 3180 2    50   Output ~ 0
 MOT1_VREF
 Text GLabel 6390 4480 2    50   Output ~ 0
 MOT2_VREF
 Text GLabel 6390 3880 2    50   Output ~ 0
 MOT3_VREF
-Text GLabel 6390 3780 2    50   Output ~ 0
+Text GLabel 6390 2780 2    50   Output ~ 0
 MOT4_VREF
 Text GLabel 3730 1810 0    50   Input ~ 0
 3V3_OUT
@@ -271,10 +271,8 @@ Text GLabel 6390 3480 2    50   Output ~ 0
 I2C_SCL
 Text GLabel 6390 3280 2    50   BiDi ~ 0
 I2C_SDA
-Text GLabel 6390 3180 2    50   Input ~ 0
+Text GLabel 6390 3380 2    50   Input ~ 0
 MPU_9250_INT
-Wire Wire Line
-	6130 3180 6390 3180
 Wire Wire Line
 	6130 4080 6380 4080
 Wire Wire Line
@@ -286,46 +284,24 @@ Wire Wire Line
 Wire Wire Line
 	6130 3280 6390 3280
 $Comp
-L Device:R R202
-U 1 1 5D220639
-P 7140 2580
-F 0 "R202" V 6933 2580 50  0000 C CNN
-F 1 "10K" V 7024 2580 50  0000 C CNN
-F 2 "Resistor_SMD:R_0603_1608Metric" V 7070 2580 50  0001 C CNN
-F 3 "~" H 7140 2580 50  0001 C CNN
-	1    7140 2580
-	0    1    1    0   
-$EndComp
-Wire Wire Line
-	6990 2580 6630 2580
-Connection ~ 6630 2580
-$Comp
 L Device:LED D201
 U 1 1 5D222400
-P 8660 2130
-F 0 "D201" V 8699 2012 50  0000 R CNN
-F 1 "LED" V 8608 2012 50  0000 R CNN
-F 2 "LED_SMD:LED_0805_2012Metric" H 8660 2130 50  0001 C CNN
-F 3 "~" H 8660 2130 50  0001 C CNN
-	1    8660 2130
+P 7190 2050
+F 0 "D201" V 7229 1932 50  0000 R CNN
+F 1 "LED" V 7138 1932 50  0000 R CNN
+F 2 "LED_SMD:LED_0805_2012Metric" H 7190 2050 50  0001 C CNN
+F 3 "~" H 7190 2050 50  0001 C CNN
+	1    7190 2050
 	0    -1   -1   0   
 $EndComp
-Text GLabel 8410 1460 0    50   Input ~ 0
+Text GLabel 6940 1380 0    50   Input ~ 0
 3V3_OUT
 Wire Wire Line
 	6390 3480 6130 3480
 Wire Wire Line
-	6390 2780 6130 2780
-Wire Wire Line
 	6130 3580 6390 3580
 Wire Wire Line
-	6390 3680 6130 3680
-Wire Wire Line
-	6390 3080 6130 3080
-Wire Wire Line
 	6390 3880 6130 3880
-Wire Wire Line
-	6390 3780 6130 3780
 Wire Wire Line
 	4670 2780 4930 2780
 Wire Wire Line
@@ -344,53 +320,23 @@ Wire Wire Line
 	6390 4380 6130 4380
 Wire Wire Line
 	6390 4480 6130 4480
-Wire Wire Line
-	6390 3380 6130 3380
-$Comp
-L Transistor_BJT:MMBT3904 Q201
-U 1 1 5D2F39E0
-P 8560 2580
-F 0 "Q201" H 8751 2626 50  0000 L CNN
-F 1 "MMBT2222" H 8751 2535 50  0000 L CNN
-F 2 "Package_TO_SOT_SMD:SOT-23" H 8760 2505 50  0001 L CIN
-F 3 "https://www.fairchildsemi.com/datasheets/2N/2N3904.pdf" H 8560 2580 50  0001 L CNN
-	1    8560 2580
-	1    0    0    -1  
-$EndComp
-Wire Wire Line
-	7290 2580 8360 2580
 $Comp
 L Device:R R203
 U 1 1 5D2F8444
-P 8660 1750
-F 0 "R203" V 8453 1750 50  0000 C CNN
-F 1 "220R" V 8544 1750 50  0000 C CNN
-F 2 "Resistor_SMD:R_0603_1608Metric" V 8590 1750 50  0001 C CNN
-F 3 "~" H 8660 1750 50  0001 C CNN
-	1    8660 1750
+P 7190 1670
+F 0 "R203" V 6983 1670 50  0000 C CNN
+F 1 "220R" V 7074 1670 50  0000 C CNN
+F 2 "Resistor_SMD:R_0603_1608Metric" V 7120 1670 50  0001 C CNN
+F 3 "~" H 7190 1670 50  0001 C CNN
+	1    7190 1670
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	8410 1460 8660 1460
+	6940 1380 7190 1380
 Wire Wire Line
-	8660 1460 8660 1600
+	7190 1380 7190 1520
 Wire Wire Line
-	8660 1900 8660 1980
-Wire Wire Line
-	8660 2280 8660 2380
-$Comp
-L power:GND #PWR0206
-U 1 1 5D2FD2F7
-P 8660 2870
-F 0 "#PWR0206" H 8660 2620 50  0001 C CNN
-F 1 "GND" H 8665 2697 50  0000 C CNN
-F 2 "" H 8660 2870 50  0001 C CNN
-F 3 "" H 8660 2870 50  0001 C CNN
-	1    8660 2870
-	1    0    0    -1  
-$EndComp
-Wire Wire Line
-	8660 2780 8660 2870
+	7190 1820 7190 1900
 NoConn ~ 4930 3780
 NoConn ~ 4930 3880
 NoConn ~ 4930 3980
@@ -401,4 +347,21 @@ Wire Wire Line
 	6390 4780 6130 4780
 Wire Wire Line
 	6130 4880 6390 4880
+Wire Wire Line
+	6390 3080 6130 3080
+Wire Wire Line
+	6380 3680 6130 3680
+Wire Wire Line
+	6390 3180 6130 3180
+Wire Wire Line
+	6390 3380 6130 3380
+Wire Wire Line
+	7190 2580 6630 2580
+Wire Wire Line
+	7190 2200 7190 2580
+Connection ~ 6630 2580
+Wire Wire Line
+	6390 2780 6130 2780
+Wire Wire Line
+	6390 3780 6130 3780
 $EndSCHEMATC
