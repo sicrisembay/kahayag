@@ -171,7 +171,7 @@ static QState bdcMotor_TOP(bdcMotor * const me, QEvt const * const e) {
         /*${bdcMotor::bdcMotor::SM::TOP::BDC_MOTOR_CTRL_TIMEOUT} */
         case BDC_MOTOR_CTRL_TIMEOUT_SIG: {
             /* calculate/Update encoder rate */
-            encoder_update(me->encoderId);
+            ENC_UPDATE(me->encoderId);
             status_ = Q_HANDLED();
             break;
         }

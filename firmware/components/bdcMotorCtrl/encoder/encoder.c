@@ -2,6 +2,7 @@
 // File dependencies.
 //*****************************************************************************
 #include "encoder.h"
+#include "test/test_encoder.h"
 #include "driver/pcnt.h"
 #include "driver/timer.h"
 #include "fix16.h"
@@ -17,7 +18,7 @@
 #define FREE_RUNNING_TMR_MAX_VAL      (uint32_t)(0xFFFFFFFFUL)
 #define NUM_EDGES_PER_ENC_PERIOD      (4UL)     // QEI in 4X mode
 #define TIMER_IDX                     (TIMER_0)
-#define ENCODER_EDGE_TIMEOUT          (100)     // unit is millisecond
+#define ENCODER_EDGE_TIMEOUT          (100 / CONFIG_MOTOR_CTRL_INTERVAL)     // unit is millisecond
 
 #define ENCODER_MIN_INT_RATE_HZ       (1000UL)
 #define ENCODER_MAX_TICK_PER_INT      (uint32_t)(FREE_RUNNING_TMR_FREQUENCY/ENCODER_MIN_INT_RATE_HZ)
@@ -83,15 +84,15 @@ static uint32_t const ENCODER_TYPE[ENCODER_ID_MAX] = {
 static int const ENCODER_CHA_IO[ENCODER_ID_MAX] = {
     CONFIG_ENC1_CHA_IO_PIN,
     CONFIG_ENC2_CHA_IO_PIN,
-    CONFIG_ENC2_CHA_IO_PIN,
-    CONFIG_ENC2_CHA_IO_PIN
+    CONFIG_ENC3_CHA_IO_PIN,
+    CONFIG_ENC4_CHA_IO_PIN
 };
 
 static int const ENCODER_CHB_IO[ENCODER_ID_MAX] = {
     CONFIG_ENC1_CHB_IO_PIN,
     CONFIG_ENC2_CHB_IO_PIN,
-    CONFIG_ENC2_CHB_IO_PIN,
-    CONFIG_ENC2_CHB_IO_PIN
+    CONFIG_ENC3_CHB_IO_PIN,
+    CONFIG_ENC4_CHB_IO_PIN
 };
 
 static encoder_decode_mode_t const ENCODER_DECODE_MODE[ENCODER_ID_MAX] = {
@@ -180,9 +181,15 @@ static void IRAM_ATTR encoder_intr_handler(void *arg)
                         if(pEncRecord->s32_EncEdgePerInt < NUM_EDGES_PER_ENC_PERIOD) {
                             pEncRecord->s32_EncEdgePerInt = NUM_EDGES_PER_ENC_PERIOD;
                         }
+                        /* Update */
+                        pcnt_set_event_value(pEncRecord->unit, PCNT_EVT_H_LIM, (int16_t)(pEncRecord->s32_EncEdgePerInt));
+                        pcnt_set_event_value(pEncRecord->unit, PCNT_EVT_L_LIM, (int16_t)(-pEncRecord->s32_EncEdgePerInt));
                     } else if(pEncRecord->s32_EncTimeDiff < (int32_t)ENCODER_MIN_TICK_PER_INT) {
                         // Interrupt rate is fast, increase encoder per interrupt
-                        pEncRecord->s32_EncEdgePerInt = (int32_t)(pEncRecord->s32_EncEdgePerInt + NUM_EDGES_PER_ENC_PERIOD);;
+                        pEncRecord->s32_EncEdgePerInt = (int32_t)(pEncRecord->s32_EncEdgePerInt + NUM_EDGES_PER_ENC_PERIOD);
+                        /* Update */
+                        pcnt_set_event_value(pEncRecord->unit, PCNT_EVT_H_LIM, (int16_t)(pEncRecord->s32_EncEdgePerInt));
+                        pcnt_set_event_value(pEncRecord->unit, PCNT_EVT_L_LIM, (int16_t)(-pEncRecord->s32_EncEdgePerInt));
                     }
                 } else { // if(1 == pEncRecord->flag.EncoderFirstEdge)
                     /* First edge */
@@ -208,7 +215,7 @@ void encoder_init(void)
     timer_config_t timer_config;
     uint32_t id;
 
-    ESP_LOGI(TAG, "initializing encoder");
+    ESP_LOGI(TAG, "initializing...");
 
     /* Initialize timer used for encoder timestamp */
     timer_config.divider = FREE_RUNNING_TMR_PRESCALER;
@@ -276,6 +283,9 @@ void encoder_init(void)
         /* Continue Counting */
         pcnt_counter_resume(ENCODER_PCNT_UNIT[id]);
     }
+#if(ENABLE_ENCODER_TEST != 0)
+    test_encoder_init();
+#endif /* #if (ENABLE_ENCODER_TEST != 0) */
 }
 
 void encoder_deinit(void)
@@ -324,8 +334,10 @@ void encoder_update(encoder_id_t id)
             /* No Valid Speed Values from encoder */
             pEncRecord->q16_radPerSec = 0;
         } else {
-            pEncRecord->q16_radPerSec = (((Q25_7_SPD_CONSTANT/pEncRecord->u32_EncPerRev) << 3) /
-                                    pEncRecord->q24_8_TickPerEncEdg) << 14;
+            if((pEncRecord->q24_8_TickPerEncEdg != 0) && (pEncRecord->u32_EncPerRev != 0)){ /* paranoid check */
+                pEncRecord->q16_radPerSec = (((Q25_7_SPD_CONSTANT/pEncRecord->u32_EncPerRev) << 3) /
+                                        pEncRecord->q24_8_TickPerEncEdg) << 14;
+            }
         }
 
         /* Add direction information */

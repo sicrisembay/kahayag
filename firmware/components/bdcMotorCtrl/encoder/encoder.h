@@ -6,6 +6,7 @@
 //*****************************************************************************
 #include "stdint.h"
 #include "fix16.h"
+#include "test/test_encoder.h"
 
 //*****************************************************************************
 // Public / Internal definitions.
@@ -39,6 +40,12 @@ typedef enum {
     ENCODER_TYPE_QUAD,          /*!< Quadrature Channel Encoder */
     ENCODER_TYPE_MAX
 } encoder_type_t;
+
+#if(ENABLE_ENCODER_TEST != 0)
+#define ENC_UPDATE(x)
+#else
+#define ENC_UPDATE(x)      encoder_update(x)
+#endif /* #if(ENABLE_ENCODER_TEST != 0) */
 
 //*****************************************************************************
 // Public function prototypes.

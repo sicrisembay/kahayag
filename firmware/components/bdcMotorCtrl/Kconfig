@@ -27,16 +27,30 @@ menu "Motor Configuration"
       Control calculation interval
 
   menu "Motor One"
-    config PWM1_CHA_IO_PIN
-      int "PWMA IO Pin"
-      default 27
+    choice DRV1_MODE
+      prompt "Type of BD62220 operating mode"
       help
-        IO Pin connected to ChA PWM
-    config PWM1_CHB_IO_PIN
-      int "PWMB IO Pin"
-      default 14
+        Specify BD62220 mode type
+      config DRV1_EXT_PWM
+        bool "External PWM Control"
+      config DRV1_CONST_CURRENT
+        bool "PWM Constant Current Control"
+    endchoice #DRV1_MODE
+    config DRV1_INA_IO_PIN
+      int "INA IO Pin"
+      default 26
       help
-        IO Pin connected to ChB PWM
+        IO Pin connected to Rohm INA pin
+    config DRV1_INB_IO_PIN
+      int "INB IO Pin"
+      default 25
+      help
+        IO Pin connected to Rohm INB pin
+    config DRV1_VREF_IO
+      int "VREF IO Pin"
+      default 12
+      help
+        IO Pin connected to Rohm Vref pin
     config ENC1_CHA_IO_PIN
       int "Encoder ChA IO Pin"
       default 34
@@ -50,70 +64,112 @@ menu "Motor Configuration"
   endmenu # "Motor One"
   
   menu "Motor Two"
-    config PWM2_CHA_IO_PIN
-      int "PWMA IO Pin"
-      default 12
+    choice DRV2_MODE
+      prompt "Type of BD62220 operating mode"
       help
-        IO Pin connected to ChA PWM
-    config PWM2_CHB_IO_PIN
-      int "PWMB IO Pin"
-      default 13
+        Specify BD62220 mode type
+      config DRV2_EXT_PWM
+        bool "External PWM Control"
+      config DRV2_CONST_CURRENT
+        bool "PWM Constant Current Control"
+    endchoice #DRV2_MODE
+    config DRV2_INA_IO_PIN
+      int "INA IO Pin"
+      default 33
       help
-        IO Pin connected to ChB PWM
+        IO Pin connected to Rohm INA pin
+    config DRV2_INB_IO_PIN
+      int "INB IO Pin"
+      default 32
+      help
+        IO Pin connected to Rohm INB pin
+    config DRV2_VREF_IO
+      int "VREF IO Pin"
+      default 27
+      help
+        IO Pin connected to Rohm Vref pin
     config ENC2_CHA_IO_PIN
       int "Encoder ChA IO Pin"
-      default 32
+      default 39
       help
         IO Pin connected to ChA of Encoder
     config ENC2_CHB_IO_PIN
       int "Encoder ChB IO Pin"
-      default 33
+      default 36
       help
         IO Pin connected to ChB of Encoder
   endmenu # "Motor Two"
 
   menu "Motor Three"
-    config PWM3_CHA_IO_PIN
-      int "PWMA IO Pin"
-      default 18
+    choice DRV3_MODE
+      prompt "Type of BD62220 operating mode"
       help
-        IO Pin connected to ChA PWM
-    config PWM3_CHB_IO_PIN
-      int "PWMB IO Pin"
+        Specify BD62220 mode type
+      config DRV3_EXT_PWM
+        bool "External PWM Control"
+      config DRV3_CONST_CURRENT
+        bool "PWM Constant Current Control"
+    endchoice #DRV3_MODE
+    config DRV3_INA_IO_PIN
+      int "INA IO Pin"
+      default 16
+      help
+        IO Pin connected to Rohm INA pin
+    config DRV3_INB_IO_PIN
+      int "INB IO Pin"
+      default 5
+      help
+        IO Pin connected to Rohm INB pin
+    config DRV3_VREF_IO
+      int "VREF IO Pin"
       default 19
       help
-        IO Pin connected to ChB PWM
+        IO Pin connected to Rohm Vref pin
     config ENC3_CHA_IO_PIN
       int "Encoder ChA IO Pin"
-      default 25
+      default 22
       help
         IO Pin connected to ChA of Encoder
     config ENC3_CHB_IO_PIN
       int "Encoder ChB IO Pin"
-      default 26
+      default 23
       help
         IO Pin connected to ChB of Encoder
   endmenu # "Motor Three"
 
   menu "Motor Four"
-    config PWM4_CHA_IO_PIN
-      int "PWMA IO Pin"
-      default 16
+    choice DRV4_MODE
+      prompt "Type of BD62220 operating mode"
       help
-        IO Pin connected to ChA PWM
-    config PWM4_CHB_IO_PIN
-      int "PWMB IO Pin"
-      default 17
+        Specify BD62220 mode type
+      config DRV4_EXT_PWM
+        bool "External PWM Control"
+      config DRV4_CONST_CURRENT
+        bool "PWM Constant Current Control"
+    endchoice #DRV4_MODE
+    config DRV4_INA_IO_PIN
+      int "INA IO Pin"
+      default 4
       help
-        IO Pin connected to ChB PWM
+        IO Pin connected to Rohm INA pin
+    config DRV4_INB_IO_PIN
+      int "INB IO Pin"
+      default 18
+      help
+        IO Pin connected to Rohm INB pin
+    config DRV4_VREF_IO
+      int "VREF IO Pin"
+      default 2
+      help
+        IO Pin connected to Rohm Vref pin
     config ENC4_CHA_IO_PIN
       int "Encoder ChA IO Pin"
-      default 22
+      default 17
       help
         IO Pin connected to ChA of Encoder
     config ENC4_CHB_IO_PIN
       int "Encoder ChB IO Pin"
-      default 23
+      default 21
       help
         IO Pin connected to ChB of Encoder
   endmenu # "Motor Four"

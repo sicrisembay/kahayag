@@ -24,7 +24,7 @@ QTimeEvt_armX(&amp;me-&gt;ctrlTimeEvt, CONFIG_MOTOR_CTRL_INTERVAL, CONFIG_MOTOR_
      </initial>
      <tran trig="BDC_MOTOR_CTRL_TIMEOUT">
       <action>/* calculate/Update encoder rate */
-encoder_update(me-&gt;encoderId);</action>
+ENC_UPDATE(me-&gt;encoderId);</action>
       <tran_glyph conn="5,16,3,-1,23">
        <action box="0,-2,24,2"/>
       </tran_glyph>

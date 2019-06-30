@@ -6,8 +6,8 @@
 #ifdef Q_SPY
 static uint8_t qsTxBuf[CONFIG_QPC_QSPY_TX_SIZE];
 static uint8_t qsRxBuf[CONFIG_QPC_QSPY_RX_SIZE];
-static QSTimeCtr QS_tickTime_;
-static QSTimeCtr QS_tickPeriod_;
+//static QSTimeCtr QS_tickTime_;
+//static QSTimeCtr QS_tickPeriod_;
 //#define PRIORITY_QSPY_TX   (tskIDLE_PRIORITY + 1)
 //#define PRIORITY_QSPY_RX   (tskIDLE_PRIORITY + 1)
 #endif /* #ifdef Q_SPY */
@@ -34,9 +34,7 @@ uint8_t readBuffer[RD_BUF_SIZE];
 static void _QSpyRxTask(void *pxParam)
 {
     int32_t nBytesRead = 0;
-    static const char *QSPY_TASK_TAG = "QSPY_RX_TASK";
-    esp_log_level_set(QSPY_TASK_TAG, ESP_LOG_INFO);
-    ESP_LOGI(QSPY_TASK_TAG, "QSpy Task is up!\n");
+    ESP_LOGI(TAG, "QSpy Rx Task is up.");
     while(1) {
         /* Receive UART data */
         nBytesRead = uart_read_bytes(QSPY_PORT, readBuffer, RD_BUF_SIZE, 5 / portTICK_RATE_MS);
@@ -54,9 +52,7 @@ static void _QSpyTxTask(void *pxParam)
 {
     uint16_t nTxBytes = 0;
     uint8_t const *pTxBlock;
-    static const char *QSPY_TASK_TAG = "QSPY_TX_TASK";
-    esp_log_level_set(QSPY_TASK_TAG, ESP_LOG_INFO);
-    ESP_LOGI(QSPY_TASK_TAG, "QSpy Task is up!\n");
+    ESP_LOGI(TAG, "QSpy Tx Task is up.");
     while(1) {
         uart_wait_tx_done(QSPY_PORT, (TickType_t)portMAX_DELAY);
         while(1) {
@@ -85,13 +81,14 @@ uint8_t QS_onStartup(void const *arg)
     QS_initBuf(qsTxBuf, sizeof(qsTxBuf));
     QS_rxInitBuf(qsRxBuf, sizeof(qsRxBuf));
 
+#if 0    /* NOTE: For V1 board, there's no pin allocated for QSPY */
     uart_param_config(QSPY_PORT, &uart_config);
     uart_set_pin(QSPY_PORT, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
     uart_driver_install(QSPY_PORT, CONFIG_QPC_QSPY_RX_SIZE, CONFIG_QPC_QSPY_TX_SIZE, 0, NULL, 0);
 
     xTaskCreate(_QSpyRxTask, "QSpy_rx_task", CONFIG_QPC_QSPY_RX_STACK_SIZE, NULL, PRIORITY_QSPY_RX, NULL);
     xTaskCreate(_QSpyTxTask, "QSpy_tx_task", CONFIG_QPC_QSPY_TX_STACK_SIZE, NULL, PRIORITY_QSPY_TX, NULL);
-
+#endif
     return (uint8_t)1; /* return success */
 }
 
