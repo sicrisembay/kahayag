@@ -6,6 +6,7 @@ COMPONENT_DEPENDS := freertos
 COMPONENT_DEPENDS += qpc
 
 COMPONENT_OBJS := bdcMotor.o
+COMPONENT_OBJS += control.o
 COMPONENT_OBJS += motor_driver/motor_driver.o
 COMPONENT_OBJS += encoder/encoder.o
 COMPONENT_SRCDIRS := .

@@ -5,6 +5,7 @@
 // File dependencies.
 //*****************************************************************************
 #include "stdint.h"
+#include "stdbool.h"
 #include "fix16.h"
 #include "test/test_encoder.h"
 
@@ -57,5 +58,6 @@ int32_t encoder_getCount(encoder_id_t id);
 void encoder_setCount(encoder_id_t id, int32_t count);
 fix16_t encoder_get_position(encoder_id_t id);
 fix16_t encoder_get_speed(encoder_id_t id);
+bool encoder_IsValid(encoder_id_t id);
 
 #endif // End ENCODER_H

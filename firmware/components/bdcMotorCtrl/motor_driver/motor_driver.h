@@ -40,5 +40,7 @@ void motor_driver_set_current(motor_driver_id_t id, fix16_t value);
 fix16_t motor_driver_get_extPwm(motor_driver_id_t id);
 fix16_t motor_driver_get_currentRef(motor_driver_id_t id);
 motor_driver_mode_t motor_driver_get_mode(motor_driver_id_t id);
+fix16_t motor_driver_get_posLimit(motor_driver_id_t id);
+fix16_t motor_driver_get_negLimit(motor_driver_id_t id);
 
 #endif // End MOTOR_DRIVER_H

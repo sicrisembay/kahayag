@@ -394,3 +394,14 @@ fix16_t encoder_get_speed(encoder_id_t id)
     }
     return (retval);
 }
+
+bool encoder_IsValid(encoder_id_t id)
+{
+    bool retval = false;
+
+    if(id < ENCODER_ID_MAX) {
+        retval = encoderRecord[id].flag.EncoderValid;
+    }
+
+    return (retval);
+}

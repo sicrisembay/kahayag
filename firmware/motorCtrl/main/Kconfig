@@ -1,0 +1,58 @@
+menu "User Application"
+  menu "QSpy Configuration"
+    choice QPC_QSPY_PHY_TRANSPORT_CHOICE
+      prompt "Physical Transport used by QSpy"
+      help
+        Specify the physical transport that QSpy uses
+      config QPC_QSPY_PHY_UART
+        bool "UART"
+      config QPC_QSPY_PHY_BT_SPP
+        bool "Bluetooth SPP"
+    endchoice # QPC_QSPY_PHY_TRANSPORT_CHOICE
+
+    config QPC_QSPY_TX_PIN
+      int "QSpy Transmit IO pin"
+      depends on QPC_QSPY_PHY_UART
+      default 18
+      help
+        IO pin used for QSpy transmit
+    config QPC_QSPY_RX_PIN
+      int "QSpy Receive IO pin"
+      depends on QPC_QSPY_PHY_UART
+      default 19
+      help
+        IO pin used for QSpy receive
+    config QPC_QSPY_TX_SIZE
+      int "QSpy Tx Buffer size"
+      range 128 2048
+      default 512
+      help
+        Transmit buffer size used by QSpy
+    config QPC_QSPY_RX_SIZE
+      int "QSpy Rx Buffer size"
+      range 128 2048
+      default 256
+      help
+        Receive buffer size used by QSpy
+    config QPC_QSPY_STACK_SIZE
+      int "QSpy Task Stack Size in bytes"
+      default 2048
+      help
+        Stack size of QSpy task
+  endmenu #QSpy Configuration
+
+  config USER_CMD_DEBUG_ENABLED
+    bool "Enable debug of User Command"
+    default n
+
+  menu "Data Streamer"
+    config DATA_STREAMER_STACK_SIZE
+      int "Stack Size of Data Streamer Task"
+      default 2048
+    config DATA_STREAMER_INTERVAL
+      int "Time Interval of sending Data"
+      default 100
+      
+  endmenu # "Data Streamer"
+  
+endmenu # User Application

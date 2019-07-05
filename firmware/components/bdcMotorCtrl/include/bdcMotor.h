@@ -46,5 +46,28 @@ extern QActive * const AO_bdcMotor[MOTOR_ID_MAX];
 /*${bdcMotor::bdc_motor_ctor} ..............................................*/
 void bdc_motor_ctor(void);
 /*$enddecl${bdcMotor::bdc_motor_ctor} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$declare${bdcMotor::bdc_motor_run} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_run} ...............................................*/
+esp_err_t bdc_motor_run(
+    motor_id_t id,
+    fix16_t q16_refSpeed,
+    void const * const sender);
+/*$enddecl${bdcMotor::bdc_motor_run} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$declare${bdcMotor::bdc_motor_stop} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_stop} ..............................................*/
+esp_err_t bdc_motor_stop(motor_id_t id, void const * const sender);
+/*$enddecl${bdcMotor::bdc_motor_stop} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$declare${bdcMotor::bdc_motor_get_speed} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_get_speed} .........................................*/
+fix16_t bdc_motor_get_speed(motor_id_t id);
+/*$enddecl${bdcMotor::bdc_motor_get_speed} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$declare${bdcMotor::bdc_motor_get_position} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_get_position} ......................................*/
+fix16_t bdc_motor_get_position(motor_id_t id);
+/*$enddecl${bdcMotor::bdc_motor_get_position} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$declare${bdcMotor::bdc_motor_get_current} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_get_current} .......................................*/
+fix16_t bdc_motor_get_current(motor_id_t id);
+/*$enddecl${bdcMotor::bdc_motor_get_current} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
 
 #endif /* _BDC_MOTOR_H_ */
