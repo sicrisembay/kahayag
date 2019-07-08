@@ -65,10 +65,43 @@ typedef struct {
     fix16_t q16_lowLimit;
 } pid_ctrl_record_t;
 /*$enddecl${control::pid_ctrl_record_t} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$declare${control::p_ctrl_record_t} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${control::p_ctrl_record_t} ..............................................*/
+typedef struct {
+/* private: */
+
+/* public: */
+
+    /*!< Control Reference */
+    fix16_t q16_reference;
+
+    /*!< Feedback from Control Variable */
+    fix16_t q16_feedback;
+
+    /*!< Proportional Gain */
+    fix16_t q16_kp;
+
+    /*!< Error: t iteration */
+    fix16_t q16_e;
+
+    /*!< Command output of this control iteration */
+    fix16_t q16_u;
+
+    /*!< Upper Limit of Control Command */
+    fix16_t q16_highLimit;
+
+    /*!< Lower Limit of Control Command */
+    fix16_t q16_lowLimit;
+} p_ctrl_record_t;
+/*$enddecl${control::p_ctrl_record_t} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
 
 /*$declare${control::ctrl_pid_execute} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
 /*${control::ctrl_pid_execute} .............................................*/
 esp_err_t ctrl_pid_execute(pid_ctrl_record_t * pCtrlRec);
 /*$enddecl${control::ctrl_pid_execute} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$declare${control::ctrl_p_execute} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${control::ctrl_p_execute} ...............................................*/
+esp_err_t ctrl_p_execute(p_ctrl_record_t * pCtrlRec);
+/*$enddecl${control::ctrl_p_execute} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
 
 #endif /* _CONTROL_H_ */

@@ -1,5 +1,6 @@
 #ifndef _SIGNAL_LIST_H_
 #define _SIGNAL_LIST_H_
+
 enum appSignals {
     // Events/Signals that are published **************************************
     // Published BDC Motor Signal
@@ -31,4 +32,14 @@ enum appRecords {
     RECORD_MOTOR = QS_USER,
     RECORD_STREAM,
 };
+
+/* TAG Definitions */
+// Message Types **************************************************************
+//! \enum MESSAGE_TAG
+enum MESSAGE_TAG {
+    STREAM_TAG = 0xFF,      //!< Value: 0xFF.  Tag used for stream-type message.
+    EVENT_TAG = 0xFE,       //!< Value: 0xFE.  Tag used for event-type message.
+    RESPONSE_TAG = 0xFD     //!< Value: 0xFD.  Tag used for response-type message.
+};
+
 #endif /* #ifndef _SIGNAL_LIST_H_ */

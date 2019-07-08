@@ -20,11 +20,17 @@ menu "Motor Configuration"
     help
       Stack Size of Motor Task
 
-  config MOTOR_CTRL_INTERVAL
-    int "Control iteration interval, ms"
+  config MOTOR_SPEED_CTRL_INTERVAL
+    int "Speed Control Loop Interval, ms"
     default 5
     help
-      Control calculation interval
+      Speed control calculation interval
+
+  config MOTOR_POSITION_CTRL_INTERVAL
+    int "Position Control Loop Interval, ms"
+    default 10
+    help
+      Position control calculation interval
 
   menu "Motor One"
     choice DRV1_MODE
@@ -61,6 +67,11 @@ menu "Motor Configuration"
       default 35
       help
         IO Pin connected to ChB of Encoder
+    config MOT1_STOP_TOL
+      int "Motor Position Stop Criteria in radian (Q16 format)"
+      default 41177
+      help
+        For 5-pole pair motor, default is (2*pi)/(2 * N pole pairs) << 16
   endmenu # "Motor One"
   
   menu "Motor Two"
@@ -98,6 +109,11 @@ menu "Motor Configuration"
       default 36
       help
         IO Pin connected to ChB of Encoder
+    config MOT2_STOP_TOL
+      int "Motor Position Stop Criteria in radian (Q16 format)"
+      default 41177
+      help
+        For 5-pole pair motor, default is (2*pi)/(2 * N pole pairs) << 16
   endmenu # "Motor Two"
 
   menu "Motor Three"
@@ -135,6 +151,11 @@ menu "Motor Configuration"
       default 23
       help
         IO Pin connected to ChB of Encoder
+    config MOT3_STOP_TOL
+      int "Motor Position Stop Criteria in radian (Q16 format)"
+      default 41177
+      help
+        For 5-pole pair motor, default is (2*pi)/(2 * N pole pairs) << 16
   endmenu # "Motor Three"
 
   menu "Motor Four"
@@ -172,6 +193,11 @@ menu "Motor Configuration"
       default 21
       help
         IO Pin connected to ChB of Encoder
+    config MOT4_STOP_TOL
+      int "Motor Position Stop Criteria in radian (Q16 format)"
+      default 41177
+      help
+        For 5-pole pair motor, default is (2*pi)/(2 * N pole pairs) << 16
   endmenu # "Motor Four"
   
 endmenu #Motor Configuration

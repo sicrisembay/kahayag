@@ -56,3 +56,26 @@ esp_err_t ctrl_pid_execute(pid_ctrl_record_t * pCtrlRec) {
     return (retval);
 }
 /*$enddef${control::ctrl_pid_execute} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$define${control::ctrl_p_execute} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${control::ctrl_p_execute} ...............................................*/
+esp_err_t ctrl_p_execute(p_ctrl_record_t * pCtrlRec) {
+    esp_err_t retval = ESP_OK;
+
+    if(pCtrlRec != NULL) {
+        /* calculate error */
+        pCtrlRec->q16_e = pCtrlRec->q16_reference - pCtrlRec->q16_feedback;
+        /* calculate output command */
+        pCtrlRec->q16_u = fix16_mul(pCtrlRec->q16_kp, pCtrlRec->q16_e);
+        /* Output shall be within limit */
+        if(pCtrlRec->q16_u > pCtrlRec->q16_highLimit) {
+            pCtrlRec->q16_u = pCtrlRec->q16_highLimit;
+        } else if(pCtrlRec->q16_u < pCtrlRec->q16_lowLimit) {
+            pCtrlRec->q16_u = pCtrlRec->q16_lowLimit;
+        }
+    } else {
+        retval = ESP_ERR_INVALID_ARG;
+    }
+
+    return (retval);
+}
+/*$enddef${control::ctrl_p_execute} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/

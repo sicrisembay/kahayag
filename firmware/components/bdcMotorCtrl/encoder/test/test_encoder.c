@@ -23,12 +23,12 @@ static void encoder_test_task(void * arg)
     ESP_LOGI(TAG, "Test Running...");
     prevWakeTime = xTaskGetTickCount();
     while(1) {
-        vTaskDelayUntil(&prevWakeTime, CONFIG_MOTOR_CTRL_INTERVAL);
+        vTaskDelayUntil(&prevWakeTime, CONFIG_MOTOR_SPEED_CTRL_INTERVAL);
         for(id = ENCODER_ID_1; id < ENCODER_ID_MAX; id++) {
             encoder_update(id);
         }
 
-        cnt += CONFIG_MOTOR_CTRL_INTERVAL;
+        cnt += CONFIG_MOTOR_SPEED_CTRL_INTERVAL;
         if(cnt >= ENCODER_TEST_PRINT_INTERVAL) {
             cnt = 0;
             ESP_LOGI(TAG, "ENC1 (Cnt:%d, Spd:%d) "

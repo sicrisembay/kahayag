@@ -8,6 +8,7 @@
 #include "bdcMotor.h"
 #include "bt_bridge.h"
 #include "dataStreamer.h"
+#include "mpu9250.h"
 
 static const char *TAG = "main";
 
@@ -46,6 +47,9 @@ void app_main()
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK( ret );
+
+    /* initialize MPU9250 */
+    mpu9250_init();
 
     /* initialize bluetooth SPP */
     bt_bridge_init();

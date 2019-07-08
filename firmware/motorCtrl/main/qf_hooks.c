@@ -18,7 +18,7 @@ static const char *QSPY_TAG = "qspy";
 
 void QF_onStartup(void)
 {
-    /* Register Tick Hook */
+    QS_filterOn(QS_UA_RECORDS);
 }
 
 IRAM_ATTR void Q_onAssert(char_t const * const module, int_t location)

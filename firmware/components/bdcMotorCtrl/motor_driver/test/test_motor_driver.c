@@ -148,7 +148,7 @@ static void motor_driver_test_task(void * arg)
     prevWakeTime = xTaskGetTickCount();
 
     while(1) {
-        vTaskDelayUntil(&prevWakeTime, CONFIG_MOTOR_CTRL_INTERVAL);
+        vTaskDelayUntil(&prevWakeTime, CONFIG_MOTOR_SPEED_CTRL_INTERVAL);
         for(id = MOTOR_DRIVER_ID_1; id < MOTOR_DRIVER_MAX; id++) {
             if(motor_driver_get_mode(id) == MOTOR_DRIVER_MODE_EXT_PWM) {
                 dutyCycle = fix16_sigTable.pTable[sigIdx[id]];

@@ -1,4 +1,17 @@
 menu "User Application"
+  choice APP_PINNED_TO_CORE_CHOICE
+    prompt "The cpu core which User Application run"
+    depends on !FREERTOS_UNICORE
+    help
+      Specify the cpu core to run User Application.
+    config USER_APP_PINNED_TO_CORE_0
+      bool "Core 0 (PRO CPU)"
+    config USER_APP_PINNED_TO_CORE_1
+        bool "Core 1 (APP CPU)"
+    config USER_APP_NO_CORE_AFFINITY
+      bool "No Affinity (PRO or APP CPU)"
+  endchoice #APP_PINNED_TO_CORE_CHOICE
+
   menu "QSpy Configuration"
     choice QPC_QSPY_PHY_TRANSPORT_CHOICE
       prompt "Physical Transport used by QSpy"
@@ -54,5 +67,24 @@ menu "User Application"
       default 100
       
   endmenu # "Data Streamer"
+  
+  menu "MPU9250"
+    config MPU9250_I2C_PORT_NUM
+      int "I2C Master port used for MPU9250 Communication"
+      range 0 1
+      default 0
+    config MPU9250_I2C_SDA_IO
+      int "I2C SDA IO for MPU9250"
+      default 13
+    config MPU9250_I2C_SCL_IO
+      int "I2C SCL IO for MPU9250"
+      default 15
+    config MPU9250_I2C_CLK_FREQ
+      int "I2C Clock Frequency for MPU9250"
+      default 100000
+    config MPU9250_INT_IO
+      int "MPU9250 Interrupt IO"
+      default 14
+  endmenu # MPU9250
   
 endmenu # User Application

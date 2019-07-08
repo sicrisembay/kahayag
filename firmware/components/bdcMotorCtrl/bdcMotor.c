@@ -28,6 +28,8 @@
 
 Q_DEFINE_THIS_FILE
 
+#define POSITION_SPEED_LOOP_RATIO        (CONFIG_MOTOR_POSITION_CTRL_INTERVAL / CONFIG_MOTOR_SPEED_CTRL_INTERVAL)
+
 static const char *TAG = "bdcMotor";
 
 /* Motor Task Priority Configuration (MOTOR ID to Priority translation) */
@@ -78,6 +80,29 @@ static fix16_t const MOTOR_CTRL_SPD_C[MOTOR_ID_MAX] = {
     0           // MOTOR_FOUR Speed Control CoeffC: 0
 };
 
+static fix16_t const MOTOR_MAX_SPEED[MOTOR_ID_MAX] = {
+    20578304,   // MOTOR_ONE Max Speed: 314 rad/s (approximately 3000RPM)
+    20578304,   // MOTOR_TWO Max Speed: 314 rad/s (approximately 3000RPM)
+    20578304,   // MOTOR_THREE Max Speed: 314 rad/s (approximately 3000RPM)
+    20578304    // MOTOR_FOUR Max Speed: 314 rad/s (approximately 3000RPM)
+};
+
+/* Motor Position Controller Kp */
+static fix16_t const MOTOR_CTRL_POS_KP[MOTOR_ID_MAX] = {
+    418120,     // MOTOR_ONE Position Kp: 6.38
+    418120,     // MOTOR_TWO Position Kp: 6.38
+    418120,     // MOTOR_THREE Position Kp: 6.38
+    418120      // MOTOR_FOUR Position Kp: 6.38
+};
+
+/* Motor Position Stop Tolerance */
+static fix16_t const MOTOR_CTRL_POS_STOP_TOL[MOTOR_ID_MAX] = {
+    CONFIG_MOT1_STOP_TOL,       // (2*pi)/(2 * N pole pairs) << 16 (Default motor: 5 pole-pairs)
+    CONFIG_MOT2_STOP_TOL,       // (2*pi)/(2 * N pole pairs) << 16 (Default motor: 5 pole-pairs)
+    CONFIG_MOT3_STOP_TOL,       // (2*pi)/(2 * N pole pairs) << 16 (Default motor: 5 pole-pairs)
+    CONFIG_MOT4_STOP_TOL,       // (2*pi)/(2 * N pole pairs) << 16 (Default motor: 5 pole-pairs)
+};
+
 /*$declare${bdcMotor::bdcMotor} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
 /*${bdcMotor::bdcMotor} ....................................................*/
 typedef struct {
@@ -89,7 +114,9 @@ typedef struct {
     encoder_id_t encoderId;
     motor_driver_id_t driverId;
     fix16_t q16_currentRef;
+    uint32_t speedCtrlExecCnt;
     pid_ctrl_record_t speedCtrlRecord;
+    p_ctrl_record_t positionCtrlRecord;
 } bdcMotor;
 
 /* protected: */
@@ -100,6 +127,7 @@ static QState bdcMotor_STOPPED(bdcMotor * const me, QEvt const * const e);
 static QState bdcMotor_RUNNING(bdcMotor * const me, QEvt const * const e);
 static QState bdcMotor_SPEED_CONTROL(bdcMotor * const me, QEvt const * const e);
 static QState bdcMotor_OPEN_LOOP(bdcMotor * const me, QEvt const * const e);
+static QState bdcMotor_POSITION_CONTROL(bdcMotor * const me, QEvt const * const e);
 static QState bdcMotor_STOPPING(bdcMotor * const me, QEvt const * const e);
 static QState bdcMotor_ERROR(bdcMotor * const me, QEvt const * const e);
 /*$enddecl${bdcMotor::bdcMotor} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
@@ -132,6 +160,16 @@ QActive * const AO_bdcMotor[MOTOR_ID_MAX] = {
 /*$enddef${bdcMotor::AO_bdcMotor[MOTOR_ID_MAX]} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
 
 /* event */
+/*$declare${bdcMotor::Events::bdcMotorOLEvt} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::Events::bdcMotorOLEvt} .......................................*/
+typedef struct {
+/* protected: */
+    QEvt super;
+
+/* public: */
+    fix16_t q16_openLoopValue;
+} bdcMotorOLEvt;
+/*$enddecl${bdcMotor::Events::bdcMotorOLEvt} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
 /*$declare${bdcMotor::Events::bdcMotorSpeedEvt} vvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
 /*${bdcMotor::Events::bdcMotorSpeedEvt} ....................................*/
 typedef struct {
@@ -142,6 +180,17 @@ typedef struct {
     fix16_t q16_refSpeed;
 } bdcMotorSpeedEvt;
 /*$enddecl${bdcMotor::Events::bdcMotorSpeedEvt} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$declare${bdcMotor::Events::bdcMotorPositionEvt} vvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::Events::bdcMotorPositionEvt} .................................*/
+typedef struct {
+/* protected: */
+    QEvt super;
+
+/* public: */
+    fix16_t q16_refPosition;
+    fix16_t q16_jogSpeed;
+} bdcMotorPositionEvt;
+/*$enddecl${bdcMotor::Events::bdcMotorPositionEvt} ^^^^^^^^^^^^^^^^^^^^^^^^^*/
 
 /*$define${bdcMotor::bdc_motor_ctor} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
 /*${bdcMotor::bdc_motor_ctor} ..............................................*/
@@ -167,12 +216,28 @@ void bdc_motor_ctor(void) {
             me->encoderId = MOTOR_ENCODER[id];
             me->driverId = MOTOR_DRIVER[id];
             me->q16_currentRef = (fix16_t)0;
-            /* Initialize Control Records */
+            me->speedCtrlExecCnt = 0;
+            /* Initialize Speed Control Record */
+            me->speedCtrlRecord.q16_reference = 0;
+            me->speedCtrlRecord.q16_feedback = 0;
             me->speedCtrlRecord.q16_coeff_a = MOTOR_CTRL_SPD_A[id];
             me->speedCtrlRecord.q16_coeff_b = MOTOR_CTRL_SPD_B[id];
             me->speedCtrlRecord.q16_coeff_c = MOTOR_CTRL_SPD_C[id];
+            me->speedCtrlRecord.q16_e = 0;
+            me->speedCtrlRecord.q16_e1 = 0;
+            me->speedCtrlRecord.q16_e2 = 0;
+            me->speedCtrlRecord.q16_u = 0;
+            me->speedCtrlRecord.q16_u1 = 0;
             me->speedCtrlRecord.q16_highLimit = motor_driver_get_posLimit(me->driverId);
             me->speedCtrlRecord.q16_lowLimit = motor_driver_get_negLimit(me->driverId);
+            /* Initialize Position Control Record */
+            me->positionCtrlRecord.q16_reference = 0;
+            me->positionCtrlRecord.q16_feedback = 0;
+            me->positionCtrlRecord.q16_kp = MOTOR_CTRL_POS_KP[id];
+            me->positionCtrlRecord.q16_e = 0;
+            me->positionCtrlRecord.q16_u = 0;
+            me->positionCtrlRecord.q16_highLimit = MOTOR_MAX_SPEED[id];
+            me->positionCtrlRecord.q16_lowLimit = -MOTOR_MAX_SPEED[id];
 
             /* Start active object */
             sprintf(taskName, "AO_MOT%02d", id);
@@ -190,6 +255,29 @@ void bdc_motor_ctor(void) {
     }
 }
 /*$enddef${bdcMotor::bdc_motor_ctor} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$define${bdcMotor::bdc_motor_move} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_move} ..............................................*/
+esp_err_t bdc_motor_move(
+    motor_id_t id,
+    fix16_t q16_refPosition,
+    fix16_t q16_jogSpeed,
+    void const * const sender)
+{
+    esp_err_t retval = ESP_OK;
+    bdcMotorPositionEvt *evtPtr;
+
+    if(id < MOTOR_ID_MAX) {
+        evtPtr = Q_NEW(bdcMotorPositionEvt, BDC_MOTOR_POSITION_MOVE_SIG);
+        evtPtr->q16_refPosition = q16_refPosition;
+        evtPtr->q16_jogSpeed = q16_jogSpeed;
+        QACTIVE_POST(AO_bdcMotor[id], (QEvt *)(evtPtr), sender);
+    } else {
+        retval = ESP_ERR_INVALID_ARG;
+    }
+
+    return(retval);
+}
+/*$enddef${bdcMotor::bdc_motor_move} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
 /*$define${bdcMotor::bdc_motor_run} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
 /*${bdcMotor::bdc_motor_run} ...............................................*/
 esp_err_t bdc_motor_run(
@@ -276,7 +364,7 @@ fix16_t bdc_motor_get_current(motor_id_t id) {
 static QState bdcMotor_initial(bdcMotor * const me, QEvt const * const e) {
     /*${bdcMotor::bdcMotor::SM::initial} */
     // Arm Timer for periodic generation of events
-    QTimeEvt_armX(&me->ctrlTimeEvt, CONFIG_MOTOR_CTRL_INTERVAL, CONFIG_MOTOR_CTRL_INTERVAL);
+    QTimeEvt_armX(&me->ctrlTimeEvt, CONFIG_MOTOR_SPEED_CTRL_INTERVAL, CONFIG_MOTOR_SPEED_CTRL_INTERVAL);
     return Q_TRAN(&bdcMotor_TOP);
 }
 /*${bdcMotor::bdcMotor::SM::TOP} ...........................................*/
@@ -334,6 +422,8 @@ static QState bdcMotor_TOP(bdcMotor * const me, QEvt const * const e) {
             QS_FUN_DICTIONARY(&bdcMotor_STOPPED);
             QS_FUN_DICTIONARY(&bdcMotor_RUNNING);
             QS_FUN_DICTIONARY(&bdcMotor_SPEED_CONTROL);
+            QS_FUN_DICTIONARY(&bdcMotor_OPEN_LOOP);
+            QS_FUN_DICTIONARY(&bdcMotor_POSITION_CONTROL);
             QS_FUN_DICTIONARY(&bdcMotor_STOPPING);
             QS_FUN_DICTIONARY(&bdcMotor_ERROR);
             status_ = Q_HANDLED();
@@ -388,7 +478,17 @@ static QState bdcMotor_STOPPED(bdcMotor * const me, QEvt const * const e) {
         }
         /*${bdcMotor::bdcMotor::SM::TOP::NORMAL::STOPPED::BDC_MOTOR_OPEN_LOOP} */
         case BDC_MOTOR_OPEN_LOOP_SIG: {
+            /* Update Current Loop Reference */
+            me->q16_currentRef = Q_EVT_CAST(bdcMotorOLEvt)->q16_openLoopValue;
             status_ = Q_TRAN(&bdcMotor_OPEN_LOOP);
+            break;
+        }
+        /*${bdcMotor::bdcMotor::SM::TOP::NORMAL::STOPPED::BDC_MOTOR_POSITION_MOVE} */
+        case BDC_MOTOR_POSITION_MOVE_SIG: {
+            me->positionCtrlRecord.q16_reference = Q_EVT_CAST(bdcMotorPositionEvt)->q16_refPosition;
+            me->positionCtrlRecord.q16_highLimit = Q_EVT_CAST(bdcMotorPositionEvt)->q16_jogSpeed;
+            me->positionCtrlRecord.q16_lowLimit = -me->positionCtrlRecord.q16_highLimit;
+            status_ = Q_TRAN(&bdcMotor_POSITION_CONTROL);
             break;
         }
         default: {
@@ -422,7 +522,17 @@ static QState bdcMotor_RUNNING(bdcMotor * const me, QEvt const * const e) {
         }
         /*${bdcMotor::bdcMotor::SM::TOP::NORMAL::RUNNING::BDC_MOTOR_OPEN_LOOP} */
         case BDC_MOTOR_OPEN_LOOP_SIG: {
+            /* Update Current Loop Reference */
+            me->q16_currentRef = Q_EVT_CAST(bdcMotorOLEvt)->q16_openLoopValue;
             status_ = Q_TRAN(&bdcMotor_OPEN_LOOP);
+            break;
+        }
+        /*${bdcMotor::bdcMotor::SM::TOP::NORMAL::RUNNING::BDC_MOTOR_POSITION_MOVE} */
+        case BDC_MOTOR_POSITION_MOVE_SIG: {
+            me->positionCtrlRecord.q16_reference = Q_EVT_CAST(bdcMotorPositionEvt)->q16_refPosition;
+            me->positionCtrlRecord.q16_highLimit = Q_EVT_CAST(bdcMotorPositionEvt)->q16_jogSpeed;
+            me->positionCtrlRecord.q16_lowLimit = -me->positionCtrlRecord.q16_highLimit;
+            status_ = Q_TRAN(&bdcMotor_POSITION_CONTROL);
             break;
         }
         default: {
@@ -467,6 +577,19 @@ static QState bdcMotor_SPEED_CONTROL(bdcMotor * const me, QEvt const * const e) 
             status_ = Q_HANDLED();
             break;
         }
+        /*${bdcMotor::bdcMotor::SM::TOP::NORMAL::RUNNING::SPEED_CONTROL::BDC_MOTOR_SPEED_RUN} */
+        case BDC_MOTOR_SPEED_RUN_SIG: {
+            me->speedCtrlRecord.q16_reference = Q_EVT_CAST(bdcMotorSpeedEvt)->q16_refSpeed;
+            if(me->speedCtrlRecord.q16_reference >= 0) {
+                me->speedCtrlRecord.q16_highLimit = motor_driver_get_posLimit(me->driverId);
+                me->speedCtrlRecord.q16_lowLimit = 0;
+            } else {
+                me->speedCtrlRecord.q16_highLimit = 0;
+                me->speedCtrlRecord.q16_lowLimit = motor_driver_get_negLimit(me->driverId);
+            }
+            status_ = Q_HANDLED();
+            break;
+        }
         default: {
             status_ = Q_SUPER(&bdcMotor_RUNNING);
             break;
@@ -486,6 +609,93 @@ static QState bdcMotor_OPEN_LOOP(bdcMotor * const me, QEvt const * const e) {
             /* Update Current Loop Reference */
             motor_driver_set_current(me->driverId, me->q16_currentRef);
             status_ = Q_HANDLED();
+            break;
+        }
+        /*${bdcMotor::bdcMotor::SM::TOP::NORMAL::RUNNING::OPEN_LOOP::BDC_MOTOR_OPEN_LOOP} */
+        case BDC_MOTOR_OPEN_LOOP_SIG: {
+            /* Update Current Loop Reference */
+            me->q16_currentRef = Q_EVT_CAST(bdcMotorOLEvt)->q16_openLoopValue;
+            status_ = Q_HANDLED();
+            break;
+        }
+        default: {
+            status_ = Q_SUPER(&bdcMotor_RUNNING);
+            break;
+        }
+    }
+    return status_;
+}
+/*${bdcMotor::bdcMotor::SM::TOP::NORMAL::RUNNING::POSITION_CONTROL} ........*/
+static QState bdcMotor_POSITION_CONTROL(bdcMotor * const me, QEvt const * const e) {
+    QState status_;
+    switch (e->sig) {
+        /*${bdcMotor::bdcMotor::SM::TOP::NORMAL::RUNNING::POSITION_CONTROL} */
+        case Q_ENTRY_SIG: {
+            me->speedCtrlExecCnt = 0;
+            /* Update Speed Variable Feedback */
+            me->speedCtrlRecord.q16_feedback = encoder_get_speed(me->encoderId);
+            me->speedCtrlRecord.q16_e = (fix16_t)0;
+            me->speedCtrlRecord.q16_e1 = (fix16_t)0;
+            me->speedCtrlRecord.q16_e2 = (fix16_t)0;
+            me->speedCtrlRecord.q16_u = (fix16_t)0;
+            me->speedCtrlRecord.q16_u1 = (fix16_t)0;
+            /* Update Position Variable Feedback */
+            me->positionCtrlRecord.q16_feedback = encoder_get_position(me->encoderId);
+            me->positionCtrlRecord.q16_e = me->positionCtrlRecord.q16_reference - me->positionCtrlRecord.q16_feedback;
+            me->positionCtrlRecord.q16_u = (fix16_t)0;
+            status_ = Q_HANDLED();
+            break;
+        }
+        /*${bdcMotor::bdcMotor::SM::TOP::NORMAL::RUNNING::POSITION_CONTROL::BDC_MOTOR_CTRL_TIMEOUT} */
+        case BDC_MOTOR_CTRL_TIMEOUT_SIG: {
+            /* calculate/Update encoder rate */
+            ENC_UPDATE(me->encoderId);
+
+            /* Update Current Loop Reference */
+            me->q16_currentRef = me->speedCtrlRecord.q16_u1;
+            motor_driver_set_current(me->driverId, me->q16_currentRef);
+
+            /* Execute Position Loop **********************************/
+            /* Update Position Feedback Value */
+            me->positionCtrlRecord.q16_feedback = encoder_get_position(me->encoderId);
+            me->positionCtrlRecord.q16_e = me->positionCtrlRecord.q16_reference - me->positionCtrlRecord.q16_feedback;
+            if(me->speedCtrlExecCnt >= POSITION_SPEED_LOOP_RATIO) {
+                me->speedCtrlExecCnt = 0;
+                /* P-Control */
+                if(ESP_OK != ctrl_p_execute(&(me->positionCtrlRecord))) {
+                    ESP_LOGE(TAG,"Position Control Error on ctrl_p_execute");
+                }
+                /* Update Speed Reference from Position Control Output */
+                me->speedCtrlRecord.q16_reference = me->positionCtrlRecord.q16_u;
+                if(me->speedCtrlRecord.q16_reference >= 0) {
+                    me->speedCtrlRecord.q16_highLimit = motor_driver_get_posLimit(me->driverId);
+                    me->speedCtrlRecord.q16_lowLimit = 0;
+                } else {
+                    me->speedCtrlRecord.q16_highLimit = 0;
+                    me->speedCtrlRecord.q16_lowLimit = motor_driver_get_negLimit(me->driverId);
+                }
+            }
+            /* Execute Speed Loop *************************************/
+            me->speedCtrlExecCnt++;
+            /* Update Speed Feedback Value */
+            me->speedCtrlRecord.q16_feedback = encoder_get_speed(me->encoderId);
+            /* Perform PID calculation */
+            if(ESP_OK != ctrl_pid_execute(&(me->speedCtrlRecord))) {
+                ESP_LOGE(TAG,"Speed Control Error on ctrl_pid_execute");
+            }
+            /*${bdcMotor::bdcMotor::SM::TOP::NORMAL::RUNNING::POSITION_CONTROL::BDC_MOTOR_CTRL_T~::[reachedPosition]} */
+            if (abs(me->positionCtrlRecord.q16_e) <= MOTOR_CTRL_POS_STOP_TOL[MOTOR_ID(me)]) {
+                QS_BEGIN(RECORD_MOTOR, me);
+                QS_U8(3, EVENT_TAG);
+                QS_U8(3, EVENT_MOTOR_POSITION_REACHED);
+                QS_U8(1, MOTOR_ID(me));
+                QS_END();
+                status_ = Q_TRAN(&bdcMotor_STOPPED);
+            }
+            /*${bdcMotor::bdcMotor::SM::TOP::NORMAL::RUNNING::POSITION_CONTROL::BDC_MOTOR_CTRL_T~::[else]} */
+            else {
+                status_ = Q_HANDLED();
+            }
             break;
         }
         default: {
@@ -512,6 +722,11 @@ static QState bdcMotor_STOPPING(bdcMotor * const me, QEvt const * const e) {
             ENC_UPDATE(me->encoderId);
             /*${bdcMotor::bdcMotor::SM::TOP::NORMAL::STOPPING::BDC_MOTOR_CTRL_T~::[EncoderEdgeInvalid]} */
             if (!(encoder_IsValid(me->encoderId))) {
+                QS_BEGIN(RECORD_MOTOR, me);
+                QS_U8(3, EVENT_TAG);
+                QS_U8(3, EVENT_MOTOR_STOPPED);
+                QS_U8(1, MOTOR_ID(me));
+                QS_END();
                 status_ = Q_TRAN(&bdcMotor_STOPPED);
             }
             /*${bdcMotor::bdcMotor::SM::TOP::NORMAL::STOPPING::BDC_MOTOR_CTRL_T~::[else]} */

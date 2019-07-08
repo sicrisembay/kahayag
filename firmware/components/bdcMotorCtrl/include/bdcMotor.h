@@ -33,6 +33,10 @@ typedef enum {
     MOTOR_ID_MAX
 } motor_id_t;
 
+// MOTOR EVENT TAGS
+#define EVENT_MOTOR_POSITION_REACHED            (0x00)
+#define EVENT_MOTOR_STOPPED                     (0x01)
+
 /*$declare${bdcMotor::AO_bdcMotor[MOTOR_ID_MAX]} vvvvvvvvvvvvvvvvvvvvvvvvvvv*/
 
 /* opaque pointer to motor Active Object */
@@ -46,6 +50,14 @@ extern QActive * const AO_bdcMotor[MOTOR_ID_MAX];
 /*${bdcMotor::bdc_motor_ctor} ..............................................*/
 void bdc_motor_ctor(void);
 /*$enddecl${bdcMotor::bdc_motor_ctor} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$declare${bdcMotor::bdc_motor_move} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_move} ..............................................*/
+esp_err_t bdc_motor_move(
+    motor_id_t id,
+    fix16_t q16_refPosition,
+    fix16_t q16_jogSpeed,
+    void const * const sender);
+/*$enddecl${bdcMotor::bdc_motor_move} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
 /*$declare${bdcMotor::bdc_motor_run} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
 /*${bdcMotor::bdc_motor_run} ...............................................*/
 esp_err_t bdc_motor_run(

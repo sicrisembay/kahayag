@@ -3,7 +3,7 @@
 #include "esp_err.h"
 #include "userCommand.h"
 #include "signalList.h"
-
+#include "dataStreamer.h"
 #include "bdcMotor.h"
 
 #ifdef Q_SPY
@@ -50,6 +50,28 @@ void QS_onCommand(uint8_t cmdId, uint32_t param1, uint32_t param2, uint32_t para
             }
         } else {
             _commandReply(0, cmdId, RECORD_MOTOR, RESPONSE_INVALID);
+        }
+        break;
+    }
+
+    case CMD_MOTOR_MOVE: {
+        if(param1 < MOTOR_ID_MAX) {
+            if(ESP_OK == bdc_motor_move(param1, (fix16_t)param2, (fix16_t)param3, QS_onCommand)) {
+                _commandReply(0, cmdId, RECORD_MOTOR, RESPONSE_OK);
+            } else {
+                _commandReply(0, cmdId, RECORD_MOTOR, RESPONSE_INVALID);
+            }
+        } else {
+            _commandReply(0, cmdId, RECORD_MOTOR, RESPONSE_INVALID);
+        }
+        break;
+    }
+
+    case CMD_DATA_STREAM_SET_FLAG: {
+        if(ESP_OK == data_streamer_enable(param1, param2)) {
+            _commandReply(0, cmdId, RECORD_STREAM, RESPONSE_OK);
+        } else {
+            _commandReply(0, cmdId, RECORD_STREAM, RESPONSE_INVALID);
         }
         break;
     }

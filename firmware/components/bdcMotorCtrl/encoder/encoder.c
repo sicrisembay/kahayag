@@ -18,7 +18,7 @@
 #define FREE_RUNNING_TMR_MAX_VAL      (uint32_t)(0xFFFFFFFFUL)
 #define NUM_EDGES_PER_ENC_PERIOD      (4UL)     // QEI in 4X mode
 #define TIMER_IDX                     (TIMER_0)
-#define ENCODER_EDGE_TIMEOUT          (100 / CONFIG_MOTOR_CTRL_INTERVAL)     // unit is millisecond
+#define ENCODER_EDGE_TIMEOUT          (100 / CONFIG_MOTOR_SPEED_CTRL_INTERVAL)     // unit is millisecond
 
 #define ENCODER_MIN_INT_RATE_HZ       (1000UL)
 #define ENCODER_MAX_TICK_PER_INT      (uint32_t)(FREE_RUNNING_TMR_FREQUENCY/ENCODER_MIN_INT_RATE_HZ)

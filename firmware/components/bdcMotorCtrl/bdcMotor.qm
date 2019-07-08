@@ -6,17 +6,26 @@
    <class name="bdcMotorSpeedEvt" superclass="qpc::QEvt">
     <attribute name="q16_refSpeed" type="fix16_t" visibility="0x00" properties="0x00"/>
    </class>
+   <class name="bdcMotorPositionEvt" superclass="qpc::QEvt">
+    <attribute name="q16_refPosition" type="fix16_t" visibility="0x00" properties="0x00"/>
+    <attribute name="q16_jogSpeed" type="fix16_t" visibility="0x00" properties="0x00"/>
+   </class>
+   <class name="bdcMotorOLEvt" superclass="qpc::QEvt">
+    <attribute name="q16_openLoopValue" type="fix16_t" visibility="0x00" properties="0x00"/>
+   </class>
   </package>
   <class name="bdcMotor" superclass="qpc::QActive">
    <attribute name="ctrlTimeEvt" type="QTimeEvt" visibility="0x02" properties="0x00"/>
    <attribute name="encoderId" type="encoder_id_t" visibility="0x02" properties="0x00"/>
    <attribute name="driverId" type="motor_driver_id_t" visibility="0x02" properties="0x00"/>
    <attribute name="q16_currentRef" type="fix16_t" visibility="0x02" properties="0x00"/>
+   <attribute name="speedCtrlExecCnt" type="uint32_t" visibility="0x02" properties="0x00"/>
    <attribute name="speedCtrlRecord" type="pid_ctrl_record_t" visibility="0x02" properties="0x00"/>
+   <attribute name="positionCtrlRecord" type="p_ctrl_record_t" visibility="0x02" properties="0x00"/>
    <statechart properties="0x01">
     <initial target="../1">
      <action>// Arm Timer for periodic generation of events
-QTimeEvt_armX(&amp;me-&gt;ctrlTimeEvt, CONFIG_MOTOR_CTRL_INTERVAL, CONFIG_MOTOR_CTRL_INTERVAL);</action>
+QTimeEvt_armX(&amp;me-&gt;ctrlTimeEvt, CONFIG_MOTOR_SPEED_CTRL_INTERVAL, CONFIG_MOTOR_SPEED_CTRL_INTERVAL);</action>
      <initial_glyph conn="6,4,5,0,8,2">
       <action box="0,-2,10,2"/>
      </initial_glyph>
@@ -67,6 +76,8 @@ QS_FUN_DICTIONARY(&amp;bdcMotor_NORMAL);
 QS_FUN_DICTIONARY(&amp;bdcMotor_STOPPED);
 QS_FUN_DICTIONARY(&amp;bdcMotor_RUNNING);
 QS_FUN_DICTIONARY(&amp;bdcMotor_SPEED_CONTROL);
+QS_FUN_DICTIONARY(&amp;bdcMotor_OPEN_LOOP);
+QS_FUN_DICTIONARY(&amp;bdcMotor_POSITION_CONTROL);
 QS_FUN_DICTIONARY(&amp;bdcMotor_STOPPING);
 QS_FUN_DICTIONARY(&amp;bdcMotor_ERROR);</action>
       <tran_glyph conn="5,14,3,-1,25">
@@ -82,7 +93,7 @@ QS_FUN_DICTIONARY(&amp;bdcMotor_ERROR);</action>
       <state name="STOPPED">
        <entry>me-&gt;q16_currentRef = (fix16_t)0;
 motor_driver_set_current(me-&gt;driverId, me-&gt;q16_currentRef);</entry>
-       <tran trig="BDC_MOTOR_SPEED_RUN" target="../../2/3">
+       <tran trig="BDC_MOTOR_SPEED_RUN" target="../../2/4">
         <action>me-&gt;speedCtrlRecord.q16_reference = Q_EVT_CAST(bdcMotorSpeedEvt)-&gt;q16_refSpeed;
 if(me-&gt;speedCtrlRecord.q16_reference &gt;= 0) {
     me-&gt;speedCtrlRecord.q16_highLimit = motor_driver_get_posLimit(me-&gt;driverId);
@@ -91,26 +102,36 @@ if(me-&gt;speedCtrlRecord.q16_reference &gt;= 0) {
     me-&gt;speedCtrlRecord.q16_highLimit = 0;
     me-&gt;speedCtrlRecord.q16_lowLimit = motor_driver_get_negLimit(me-&gt;driverId);
 }</action>
-        <tran_glyph conn="21,47,3,1,55,20,-5">
+        <tran_glyph conn="21,47,3,1,62,20,-12">
+         <action box="0,-2,21,2"/>
+        </tran_glyph>
+       </tran>
+       <tran trig="BDC_MOTOR_OPEN_LOOP" target="../../2/5">
+        <action>/* Update Current Loop Reference */
+me-&gt;q16_currentRef = Q_EVT_CAST(bdcMotorOLEvt)-&gt;q16_openLoopValue;</action>
+        <tran_glyph conn="21,44,3,1,64,43,-14">
          <action box="0,-2,22,2"/>
         </tran_glyph>
        </tran>
-       <tran trig="BDC_MOTOR_OPEN_LOOP" target="../../2/4">
-        <tran_glyph conn="21,44,3,1,57,43,-7">
-         <action box="0,-2,22,2"/>
+       <tran trig="BDC_MOTOR_POSITION_MOVE" target="../../2/6">
+        <action>me-&gt;positionCtrlRecord.q16_reference = Q_EVT_CAST(bdcMotorPositionEvt)-&gt;q16_refPosition;
+me-&gt;positionCtrlRecord.q16_highLimit = Q_EVT_CAST(bdcMotorPositionEvt)-&gt;q16_jogSpeed;
+me-&gt;positionCtrlRecord.q16_lowLimit = -me-&gt;positionCtrlRecord.q16_highLimit;</action>
+        <tran_glyph conn="21,41,3,1,67,64,-11">
+         <action box="0,-2,24,2"/>
         </tran_glyph>
        </tran>
-       <state_glyph node="21,36,33,13">
+       <state_glyph node="21,33,33,16">
         <entry box="1,2,6,2"/>
        </state_glyph>
       </state>
       <state name="RUNNING">
        <tran trig="BDC_MOTOR_STOP" target="../../3">
-        <tran_glyph conn="15,131,3,1,60,13,-2">
+        <tran_glyph conn="15,131,3,1,69,13,-4">
          <action box="0,-2,17,2"/>
         </tran_glyph>
        </tran>
-       <tran trig="BDC_MOTOR_SPEED_RUN" target="../3">
+       <tran trig="BDC_MOTOR_SPEED_RUN" target="../4">
         <action>me-&gt;speedCtrlRecord.q16_reference = Q_EVT_CAST(bdcMotorSpeedEvt)-&gt;q16_refSpeed;
 if(me-&gt;speedCtrlRecord.q16_reference &gt;= 0) {
     me-&gt;speedCtrlRecord.q16_highLimit = motor_driver_get_posLimit(me-&gt;driverId);
@@ -119,13 +140,23 @@ if(me-&gt;speedCtrlRecord.q16_reference &gt;= 0) {
     me-&gt;speedCtrlRecord.q16_highLimit = 0;
     me-&gt;speedCtrlRecord.q16_lowLimit = motor_driver_get_negLimit(me-&gt;driverId);
 }</action>
-        <tran_glyph conn="15,71,3,3,22">
+        <tran_glyph conn="15,71,3,3,24">
          <action box="0,-2,20,2"/>
         </tran_glyph>
        </tran>
-       <tran trig="BDC_MOTOR_OPEN_LOOP" target="../4">
-        <tran_glyph conn="15,92,3,3,22">
+       <tran trig="BDC_MOTOR_OPEN_LOOP" target="../5">
+        <action>/* Update Current Loop Reference */
+me-&gt;q16_currentRef = Q_EVT_CAST(bdcMotorOLEvt)-&gt;q16_openLoopValue;</action>
+        <tran_glyph conn="15,92,3,3,24">
          <action box="0,-2,21,2"/>
+        </tran_glyph>
+       </tran>
+       <tran trig="BDC_MOTOR_POSITION_MOVE" target="../6">
+        <action>me-&gt;positionCtrlRecord.q16_reference = Q_EVT_CAST(bdcMotorPositionEvt)-&gt;q16_refPosition;
+me-&gt;positionCtrlRecord.q16_highLimit = Q_EVT_CAST(bdcMotorPositionEvt)-&gt;q16_jogSpeed;
+me-&gt;positionCtrlRecord.q16_lowLimit = -me-&gt;positionCtrlRecord.q16_highLimit;</action>
+        <tran_glyph conn="15,110,3,3,24">
+         <action box="0,-2,24,2"/>
         </tran_glyph>
        </tran>
        <state name="SPEED_CONTROL">
@@ -151,11 +182,24 @@ me-&gt;speedCtrlRecord.q16_feedback = encoder_get_speed(me-&gt;encoderId);
 if(ESP_OK != ctrl_pid_execute(&amp;(me-&gt;speedCtrlRecord))) {
     ESP_LOGE(TAG,&quot;Speed Control Error on ctrl_pid_execute&quot;);
 }</action>
-         <tran_glyph conn="37,69,3,-1,25">
+         <tran_glyph conn="39,69,3,-1,23">
           <action box="0,-2,22,2"/>
          </tran_glyph>
         </tran>
-        <state_glyph node="37,63,34,17">
+        <tran trig="BDC_MOTOR_SPEED_RUN">
+         <action>me-&gt;speedCtrlRecord.q16_reference = Q_EVT_CAST(bdcMotorSpeedEvt)-&gt;q16_refSpeed;
+if(me-&gt;speedCtrlRecord.q16_reference &gt;= 0) {
+    me-&gt;speedCtrlRecord.q16_highLimit = motor_driver_get_posLimit(me-&gt;driverId);
+    me-&gt;speedCtrlRecord.q16_lowLimit = 0;
+} else {
+    me-&gt;speedCtrlRecord.q16_highLimit = 0;
+    me-&gt;speedCtrlRecord.q16_lowLimit = motor_driver_get_negLimit(me-&gt;driverId);
+}</action>
+         <tran_glyph conn="39,72,3,-1,23">
+          <action box="0,-2,21,2"/>
+         </tran_glyph>
+        </tran>
+        <state_glyph node="39,63,32,17">
          <entry box="1,2,6,2"/>
         </state_glyph>
        </state>
@@ -166,13 +210,94 @@ ENC_UPDATE(me-&gt;encoderId);
 
 /* Update Current Loop Reference */
 motor_driver_set_current(me-&gt;driverId, me-&gt;q16_currentRef);</action>
-         <tran_glyph conn="37,90,3,-1,25">
+         <tran_glyph conn="39,90,3,-1,23">
           <action box="0,-2,24,2"/>
          </tran_glyph>
         </tran>
-        <state_glyph node="37,83,34,15"/>
+        <tran trig="BDC_MOTOR_OPEN_LOOP">
+         <action>/* Update Current Loop Reference */
+me-&gt;q16_currentRef = Q_EVT_CAST(bdcMotorOLEvt)-&gt;q16_openLoopValue;</action>
+         <tran_glyph conn="39,94,3,-1,23">
+          <action box="0,-2,22,2"/>
+         </tran_glyph>
+        </tran>
+        <state_glyph node="39,83,32,15"/>
        </state>
-       <state_glyph node="15,54,58,80"/>
+       <state name="POSITION_CONTROL">
+        <entry>me-&gt;speedCtrlExecCnt = 0;
+/* Update Speed Variable Feedback */
+me-&gt;speedCtrlRecord.q16_feedback = encoder_get_speed(me-&gt;encoderId);
+me-&gt;speedCtrlRecord.q16_e = (fix16_t)0;
+me-&gt;speedCtrlRecord.q16_e1 = (fix16_t)0;
+me-&gt;speedCtrlRecord.q16_e2 = (fix16_t)0;
+me-&gt;speedCtrlRecord.q16_u = (fix16_t)0;
+me-&gt;speedCtrlRecord.q16_u1 = (fix16_t)0;
+/* Update Position Variable Feedback */
+me-&gt;positionCtrlRecord.q16_feedback = encoder_get_position(me-&gt;encoderId);
+me-&gt;positionCtrlRecord.q16_e = me-&gt;positionCtrlRecord.q16_reference - me-&gt;positionCtrlRecord.q16_feedback;
+me-&gt;positionCtrlRecord.q16_u = (fix16_t)0;</entry>
+        <tran trig="BDC_MOTOR_CTRL_TIMEOUT">
+         <action>/* calculate/Update encoder rate */
+ENC_UPDATE(me-&gt;encoderId);
+
+/* Update Current Loop Reference */
+me-&gt;q16_currentRef = me-&gt;speedCtrlRecord.q16_u1;
+motor_driver_set_current(me-&gt;driverId, me-&gt;q16_currentRef);
+
+/* Execute Position Loop **********************************/
+/* Update Position Feedback Value */
+me-&gt;positionCtrlRecord.q16_feedback = encoder_get_position(me-&gt;encoderId);
+me-&gt;positionCtrlRecord.q16_e = me-&gt;positionCtrlRecord.q16_reference - me-&gt;positionCtrlRecord.q16_feedback;
+if(me-&gt;speedCtrlExecCnt &gt;= POSITION_SPEED_LOOP_RATIO) {
+    me-&gt;speedCtrlExecCnt = 0;
+    /* P-Control */
+    if(ESP_OK != ctrl_p_execute(&amp;(me-&gt;positionCtrlRecord))) {
+        ESP_LOGE(TAG,&quot;Position Control Error on ctrl_p_execute&quot;);
+    }
+    /* Update Speed Reference from Position Control Output */
+    me-&gt;speedCtrlRecord.q16_reference = me-&gt;positionCtrlRecord.q16_u;
+    if(me-&gt;speedCtrlRecord.q16_reference &gt;= 0) {
+        me-&gt;speedCtrlRecord.q16_highLimit = motor_driver_get_posLimit(me-&gt;driverId);
+        me-&gt;speedCtrlRecord.q16_lowLimit = 0;
+    } else {
+        me-&gt;speedCtrlRecord.q16_highLimit = 0;
+        me-&gt;speedCtrlRecord.q16_lowLimit = motor_driver_get_negLimit(me-&gt;driverId);
+    }
+}
+/* Execute Speed Loop *************************************/
+me-&gt;speedCtrlExecCnt++;
+/* Update Speed Feedback Value */
+me-&gt;speedCtrlRecord.q16_feedback = encoder_get_speed(me-&gt;encoderId);
+/* Perform PID calculation */
+if(ESP_OK != ctrl_pid_execute(&amp;(me-&gt;speedCtrlRecord))) {
+    ESP_LOGE(TAG,&quot;Speed Control Error on ctrl_pid_execute&quot;);
+}</action>
+         <choice target="../../../../1">
+          <guard brief="reachedPosition">abs(me-&gt;positionCtrlRecord.q16_e) &lt;= MOTOR_CTRL_POS_STOP_TOL[MOTOR_ID(me)]</guard>
+          <action>QS_BEGIN(RECORD_MOTOR, me);
+QS_U8(3, EVENT_TAG);
+QS_U8(3, EVENT_MOTOR_POSITION_REACHED);
+QS_U8(1, MOTOR_ID(me));
+QS_END();</action>
+          <choice_glyph conn="63,108,5,1,27,-68,-36">
+           <action box="1,-2,14,2"/>
+          </choice_glyph>
+         </choice>
+         <choice>
+          <guard>else</guard>
+          <choice_glyph conn="63,108,4,-1,3,7">
+           <action box="1,1,6,2"/>
+          </choice_glyph>
+         </choice>
+         <tran_glyph conn="39,108,3,-1,24">
+          <action box="0,-2,24,2"/>
+         </tran_glyph>
+        </tran>
+        <state_glyph node="39,101,38,17">
+         <entry box="1,2,6,2"/>
+        </state_glyph>
+       </state>
+       <state_glyph node="15,54,65,80"/>
       </state>
       <state name="STOPPING">
        <entry>me-&gt;q16_currentRef = (fix16_t)0;
@@ -182,7 +307,12 @@ motor_driver_set_current(me-&gt;driverId, me-&gt;q16_currentRef);</entry>
 ENC_UPDATE(me-&gt;encoderId);</action>
         <choice target="../../../1">
          <guard brief="EncoderEdgeInvalid">!(encoder_IsValid(me-&gt;encoderId))</guard>
-         <choice_glyph conn="38,155,5,1,45,-116,-29">
+         <action>QS_BEGIN(RECORD_MOTOR, me);
+QS_U8(3, EVENT_TAG);
+QS_U8(3, EVENT_MOTOR_STOPPED);
+QS_U8(1, MOTOR_ID(me));
+QS_END();</action>
+         <choice_glyph conn="38,155,5,1,54,-116,-38">
           <action box="2,-2,17,2"/>
          </choice_glyph>
         </choice>
@@ -196,16 +326,16 @@ ENC_UPDATE(me-&gt;encoderId);</action>
          <action box="0,-2,22,2"/>
         </tran_glyph>
        </tran>
-       <state_glyph node="15,140,58,24">
+       <state_glyph node="15,140,65,24">
         <entry box="1,2,6,2"/>
        </state_glyph>
       </state>
-      <state_glyph node="8,29,78,144"/>
+      <state_glyph node="8,29,89,144"/>
      </state>
      <state name="ERROR">
-      <state_glyph node="91,29,23,21"/>
+      <state_glyph node="114,28,23,21"/>
      </state>
-     <state_glyph node="5,6,112,172">
+     <state_glyph node="5,6,141,172">
       <entry box="1,2,6,2"/>
      </state_glyph>
     </state>
@@ -243,12 +373,28 @@ if(!bInitDone) {
         me-&gt;encoderId = MOTOR_ENCODER[id];
         me-&gt;driverId = MOTOR_DRIVER[id];
         me-&gt;q16_currentRef = (fix16_t)0;
-        /* Initialize Control Records */
+        me-&gt;speedCtrlExecCnt = 0;
+        /* Initialize Speed Control Record */
+        me-&gt;speedCtrlRecord.q16_reference = 0;
+        me-&gt;speedCtrlRecord.q16_feedback = 0;
         me-&gt;speedCtrlRecord.q16_coeff_a = MOTOR_CTRL_SPD_A[id];
         me-&gt;speedCtrlRecord.q16_coeff_b = MOTOR_CTRL_SPD_B[id];
         me-&gt;speedCtrlRecord.q16_coeff_c = MOTOR_CTRL_SPD_C[id];
+        me-&gt;speedCtrlRecord.q16_e = 0;
+        me-&gt;speedCtrlRecord.q16_e1 = 0;
+        me-&gt;speedCtrlRecord.q16_e2 = 0;
+        me-&gt;speedCtrlRecord.q16_u = 0;
+        me-&gt;speedCtrlRecord.q16_u1 = 0;
         me-&gt;speedCtrlRecord.q16_highLimit = motor_driver_get_posLimit(me-&gt;driverId);
         me-&gt;speedCtrlRecord.q16_lowLimit = motor_driver_get_negLimit(me-&gt;driverId);
+        /* Initialize Position Control Record */
+        me-&gt;positionCtrlRecord.q16_reference = 0;
+        me-&gt;positionCtrlRecord.q16_feedback = 0;
+        me-&gt;positionCtrlRecord.q16_kp = MOTOR_CTRL_POS_KP[id];
+        me-&gt;positionCtrlRecord.q16_e = 0;
+        me-&gt;positionCtrlRecord.q16_u = 0;
+        me-&gt;positionCtrlRecord.q16_highLimit = MOTOR_MAX_SPEED[id];
+        me-&gt;positionCtrlRecord.q16_lowLimit = -MOTOR_MAX_SPEED[id];
 
         /* Start active object */
         sprintf(taskName, &quot;AO_MOT%02d&quot;, id);
@@ -264,6 +410,25 @@ if(!bInitDone) {
     }
     bInitDone = (uint32_t)1;
 }</code>
+  </operation>
+  <operation name="bdc_motor_move" type="esp_err_t" visibility="0x00" properties="0x00">
+   <parameter name="id" type="motor_id_t"/>
+   <parameter name="q16_refPosition" type="fix16_t"/>
+   <parameter name="q16_jogSpeed" type="fix16_t"/>
+   <parameter name="sender" type="void const * const"/>
+   <code>esp_err_t retval = ESP_OK;
+bdcMotorPositionEvt *evtPtr;
+
+if(id &lt; MOTOR_ID_MAX) {
+    evtPtr = Q_NEW(bdcMotorPositionEvt, BDC_MOTOR_POSITION_MOVE_SIG);
+    evtPtr-&gt;q16_refPosition = q16_refPosition;
+    evtPtr-&gt;q16_jogSpeed = q16_jogSpeed;
+    QACTIVE_POST(AO_bdcMotor[id], (QEvt *)(evtPtr), sender);
+} else {
+    retval = ESP_ERR_INVALID_ARG;
+}
+
+return(retval);</code>
   </operation>
   <operation name="bdc_motor_run" type="esp_err_t" visibility="0x00" properties="0x00">
    <parameter name="id" type="motor_id_t"/>
@@ -373,6 +538,29 @@ return (retval);</code>
     <documentation>/*!&lt; Lower Limit of Control Command */</documentation>
    </attribute>
   </class>
+  <class name="p_ctrl_record_t">
+   <attribute name="q16_reference" type="fix16_t" visibility="0x00" properties="0x00">
+    <documentation>/*!&lt; Control Reference */</documentation>
+   </attribute>
+   <attribute name="q16_feedback" type="fix16_t" visibility="0x00" properties="0x00">
+    <documentation>/*!&lt; Feedback from Control Variable */</documentation>
+   </attribute>
+   <attribute name="q16_kp" type="fix16_t" visibility="0x00" properties="0x00">
+    <documentation>/*!&lt; Proportional Gain */</documentation>
+   </attribute>
+   <attribute name="q16_e" type="fix16_t" visibility="0x00" properties="0x00">
+    <documentation>/*!&lt; Error: t iteration */</documentation>
+   </attribute>
+   <attribute name="q16_u" type="fix16_t" visibility="0x00" properties="0x00">
+    <documentation>/*!&lt; Command output of this control iteration */</documentation>
+   </attribute>
+   <attribute name="q16_highLimit" type="fix16_t" visibility="0x00" properties="0x00">
+    <documentation>/*!&lt; Upper Limit of Control Command */</documentation>
+   </attribute>
+   <attribute name="q16_lowLimit" type="fix16_t" visibility="0x00" properties="0x00">
+    <documentation>/*!&lt; Lower Limit of Control Command */</documentation>
+   </attribute>
+  </class>
   <operation name="ctrl_pid_execute" type="esp_err_t" visibility="0x00" properties="0x00">
    <parameter name="pCtrlRec" type="pid_ctrl_record_t *"/>
    <code>esp_err_t retval = ESP_OK;
@@ -401,6 +589,27 @@ if(pCtrlRec != NULL) {
 
 return (retval);</code>
   </operation>
+  <operation name="ctrl_p_execute" type="esp_err_t" visibility="0x00" properties="0x00">
+   <parameter name="pCtrlRec" type="p_ctrl_record_t *"/>
+   <code>esp_err_t retval = ESP_OK;
+
+if(pCtrlRec != NULL) {
+    /* calculate error */
+    pCtrlRec-&gt;q16_e = pCtrlRec-&gt;q16_reference - pCtrlRec-&gt;q16_feedback;
+    /* calculate output command */
+    pCtrlRec-&gt;q16_u = fix16_mul(pCtrlRec-&gt;q16_kp, pCtrlRec-&gt;q16_e);
+    /* Output shall be within limit */
+    if(pCtrlRec-&gt;q16_u &gt; pCtrlRec-&gt;q16_highLimit) {
+        pCtrlRec-&gt;q16_u = pCtrlRec-&gt;q16_highLimit;
+    } else if(pCtrlRec-&gt;q16_u &lt; pCtrlRec-&gt;q16_lowLimit) {
+        pCtrlRec-&gt;q16_u = pCtrlRec-&gt;q16_lowLimit;
+    }
+} else {
+    retval = ESP_ERR_INVALID_ARG;
+}
+
+return (retval);</code>
+  </operation>
  </package>
  <directory name=".">
   <directory name="include">
@@ -422,12 +631,17 @@ typedef enum {
     MOTOR_ID_MAX
 } motor_id_t;
 
+// MOTOR EVENT TAGS
+#define EVENT_MOTOR_POSITION_REACHED            (0x00)
+#define EVENT_MOTOR_STOPPED                     (0x01)
+
 $declare(bdcMotor::AO_bdcMotor[MOTOR_ID_MAX])
 
 /* helper macro to provide the ID of motor &quot;me_&quot; */
 #define MOTOR_ID(me_)    ((uint8_t)((me_) - l_bdcMotor))
 
 $declare(bdcMotor::bdc_motor_ctor)
+$declare(bdcMotor::bdc_motor_move)
 $declare(bdcMotor::bdc_motor_run)
 $declare(bdcMotor::bdc_motor_stop)
 $declare(bdcMotor::bdc_motor_get_speed)
@@ -443,8 +657,10 @@ $declare(bdcMotor::bdc_motor_get_current)
 #include &quot;fix16.h&quot;
 
 $declare(control::pid_ctrl_record_t)
+$declare(control::p_ctrl_record_t)
 
 $declare(control::ctrl_pid_execute)
+$declare(control::ctrl_p_execute)
 
 #endif /* _CONTROL_H_ */</text>
    </file>
@@ -461,6 +677,8 @@ $declare(control::ctrl_pid_execute)
 #include &quot;esp_log.h&quot;
 
 Q_DEFINE_THIS_FILE
+
+#define POSITION_SPEED_LOOP_RATIO        (CONFIG_MOTOR_POSITION_CTRL_INTERVAL / CONFIG_MOTOR_SPEED_CTRL_INTERVAL)
 
 static const char *TAG = &quot;bdcMotor&quot;;
 
@@ -512,6 +730,29 @@ static fix16_t const MOTOR_CTRL_SPD_C[MOTOR_ID_MAX] = {
     0           // MOTOR_FOUR Speed Control CoeffC: 0
 };
 
+static fix16_t const MOTOR_MAX_SPEED[MOTOR_ID_MAX] = {
+    20578304,   // MOTOR_ONE Max Speed: 314 rad/s (approximately 3000RPM)
+    20578304,   // MOTOR_TWO Max Speed: 314 rad/s (approximately 3000RPM)
+    20578304,   // MOTOR_THREE Max Speed: 314 rad/s (approximately 3000RPM)
+    20578304    // MOTOR_FOUR Max Speed: 314 rad/s (approximately 3000RPM)
+};
+
+/* Motor Position Controller Kp */
+static fix16_t const MOTOR_CTRL_POS_KP[MOTOR_ID_MAX] = {
+    418120,     // MOTOR_ONE Position Kp: 6.38
+    418120,     // MOTOR_TWO Position Kp: 6.38
+    418120,     // MOTOR_THREE Position Kp: 6.38
+    418120      // MOTOR_FOUR Position Kp: 6.38
+};
+
+/* Motor Position Stop Tolerance */
+static fix16_t const MOTOR_CTRL_POS_STOP_TOL[MOTOR_ID_MAX] = {
+    CONFIG_MOT1_STOP_TOL,       // (2*pi)/(2 * N pole pairs) &lt;&lt; 16 (Default motor: 5 pole-pairs)
+    CONFIG_MOT2_STOP_TOL,       // (2*pi)/(2 * N pole pairs) &lt;&lt; 16 (Default motor: 5 pole-pairs)
+    CONFIG_MOT3_STOP_TOL,       // (2*pi)/(2 * N pole pairs) &lt;&lt; 16 (Default motor: 5 pole-pairs)
+    CONFIG_MOT4_STOP_TOL,       // (2*pi)/(2 * N pole pairs) &lt;&lt; 16 (Default motor: 5 pole-pairs)
+};
+
 $declare(bdcMotor::bdcMotor)
 
 /* Local Object */
@@ -526,9 +767,12 @@ static StackType_t bdcMotorStack[MOTOR_ID_MAX][CONFIG_MOTOR_STACK_SIZE];
 $define(bdcMotor::AO_bdcMotor[MOTOR_ID_MAX])
 
 /* event */
+$declare(bdcMotor::Events::bdcMotorOLEvt)
 $declare(bdcMotor::Events::bdcMotorSpeedEvt)
+$declare(bdcMotor::Events::bdcMotorPositionEvt)
 
 $define(bdcMotor::bdc_motor_ctor)
+$define(bdcMotor::bdc_motor_move)
 $define(bdcMotor::bdc_motor_run)
 $define(bdcMotor::bdc_motor_stop)
 $define(bdcMotor::bdc_motor_get_speed)
@@ -543,7 +787,8 @@ $define(bdcMotor::bdcMotor)
 #include &quot;control.h&quot;
 #include &quot;esp_log.h&quot;
 
-$define(control::ctrl_pid_execute)</text>
+$define(control::ctrl_pid_execute)
+$define(control::ctrl_p_execute)</text>
   </file>
  </directory>
 </model>

@@ -8,13 +8,6 @@
 //*****************************************************************************
 // Public / Internal definitions.
 //*****************************************************************************
-// Message Types **************************************************************
-//! \enum MESSAGE_TAG
-enum MESSAGE_TAG {
-    STREAM_TAG = 0xFF,      //!< Value: 0xFF.  Tag used for stream-type message.
-    EVENT_TAG = 0xFE,       //!< Value: 0xFE.  Tag used for event-type message.
-    RESPONSE_TAG = 0xFD     //!< Value: 0xFD.  Tag used for response-type message.
-};
 
 // Response Status ************************************************************
 //! \enum RESPONSE_STATUS
@@ -24,30 +17,40 @@ enum RESPONSE_STATUS {
 };
 
 // Events *********************************************************************
-// MOTOR EVENT TAGS
-#define EVENT_MOTOR_POSITION_REACHED            (0x00)
-#define EVENT_MOTOR_STOPPED                     (0x01)
 
 //*****************************************************************************
-// CmdId : CMD_MOTOR_STOP                       (0x20)
+// CmdId : CMD_MOTOR_STOP                       (0x10)
 // param1: Motor ID (0: MOTOR_ONE; 1: MOTOR_TWO; 2: MOTOR_THREE; 3: MOTOR_FOUR)
 // param2: Unused
 // param3: Unused
 //*****************************************************************************
-#define CMD_MOTOR_STOP                          (0x20)
+#define CMD_MOTOR_STOP                          (0x10)
 //*****************************************************************************
-// CmdId : CMD_MOTOR_RUN                        (0x21)
+// CmdId : CMD_MOTOR_RUN                        (0x11)
 // param1: Motor ID (0: MOTOR_ONE; 1: MOTOR_TWO; 2: MOTOR_THREE; 3: MOTOR_FOUR)
 // param2: Motor Reference Speed in radian per second (Q16 format)
 // param3: Unused
 //*****************************************************************************
-#define CMD_MOTOR_RUN                           (0x21)
+#define CMD_MOTOR_RUN                           (0x11)
 //*****************************************************************************
-// CmdId : CMD_MOTOR_MOVE                       (0x22)
+// CmdId : CMD_MOTOR_MOVE                       (0x12)
 // param1: Motor ID (0: MOTOR_ONE; 1: MOTOR_TWO; 2: MOTOR_THREE; 3: MOTOR_FOUR)
 // param2: Motor Reference Position in radian (Q16 format)
 // param3: Motor Jog Speed in radian/second (Q16 format)
 //*****************************************************************************
-#define CMD_MOTOR_MOVE                          (0x22)
+#define CMD_MOTOR_MOVE                          (0x12)
+
+#define CMD_MOTOR_OPEN_LOOP                     (0x13)
+#define CMD_MOTOR_SET_SPEED_COEFFA              (0x14)
+#define CMD_MOTOR_SET_SPEED_COEFFB              (0x15)
+#define CMD_MOTOR_SET_SPEED_COEFFC              (0x16)
+#define CMD_MOTOR_SET_POS_KP                    (0x17)
+//*****************************************************************************
+// CmdId : CMD_DATA_STREAM_SET_FLAG             (0x30)
+// param1: StreamFlagMask
+// param2: 0: Disable, 1: Enable
+// param3: Unused
+//*****************************************************************************
+#define CMD_DATA_STREAM_SET_FLAG                (0x30)
 
 #endif // End _USER_COMMAND_H_
