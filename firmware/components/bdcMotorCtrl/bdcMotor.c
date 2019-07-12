@@ -299,6 +299,27 @@ esp_err_t bdc_motor_run(
     return(retval);
 }
 /*$enddef${bdcMotor::bdc_motor_run} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$define${bdcMotor::bdc_motor_open_loop} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_open_loop} .........................................*/
+esp_err_t bdc_motor_open_loop(
+    motor_id_t id,
+    fix16_t q16_OL_val,
+    void const * const sender)
+{
+    esp_err_t retval = ESP_OK;
+    bdcMotorOLEvt *evtPtr;
+
+    if(id < MOTOR_ID_MAX) {
+        evtPtr = Q_NEW(bdcMotorOLEvt, BDC_MOTOR_OPEN_LOOP_SIG);
+        evtPtr->q16_openLoopValue = q16_OL_val;
+        QACTIVE_POST(AO_bdcMotor[id], (QEvt *)(evtPtr), sender);
+    } else {
+        retval = ESP_ERR_INVALID_ARG;
+    }
+
+    return(retval);
+}
+/*$enddef${bdcMotor::bdc_motor_open_loop} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
 /*$define${bdcMotor::bdc_motor_stop} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
 /*${bdcMotor::bdc_motor_stop} ..............................................*/
 esp_err_t bdc_motor_stop(motor_id_t id, void const * const sender) {
@@ -357,6 +378,188 @@ fix16_t bdc_motor_get_current(motor_id_t id) {
     return (retval);
 }
 /*$enddef${bdcMotor::bdc_motor_get_current} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$define${bdcMotor::bdc_motor_get_driver_conv_factor} vvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_get_driver_conv_factor} ............................*/
+esp_err_t bdc_motor_get_driver_conv_factor(motor_id_t id, fix16_t * pVal) {
+    bdcMotor * me;
+    esp_err_t retval = ESP_OK;
+    *pVal = 0;
+
+    if((id < MOTOR_ID_MAX) && (pVal != (fix16_t *)0)) {
+        me = &l_bdcMotor[id];
+        *pVal = motor_driver_get_i_duty_factor(me->driverId);
+    } else {
+        retval = ESP_ERR_INVALID_ARG;
+    }
+
+    return (retval);
+}
+/*$enddef${bdcMotor::bdc_motor_get_driver_conv_factor} ^^^^^^^^^^^^^^^^^^^^^*/
+/*$define${bdcMotor::bdc_motor_get_speed_coeffA} vvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_get_speed_coeffA} ..................................*/
+esp_err_t bdc_motor_get_speed_coeffA(motor_id_t id, fix16_t * pVal) {
+    bdcMotor * me;
+    esp_err_t retval = ESP_OK;
+    *pVal = 0;
+
+    if((id < MOTOR_ID_MAX) && (pVal != (fix16_t *)0)) {
+        me = &l_bdcMotor[id];
+        *pVal = me->speedCtrlRecord.q16_coeff_a;
+    } else {
+        retval = ESP_ERR_INVALID_ARG;
+    }
+
+    return (retval);
+}
+/*$enddef${bdcMotor::bdc_motor_get_speed_coeffA} ^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$define${bdcMotor::bdc_motor_get_speed_coeffB} vvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_get_speed_coeffB} ..................................*/
+esp_err_t bdc_motor_get_speed_coeffB(motor_id_t id, fix16_t * pVal) {
+    bdcMotor * me;
+    esp_err_t retval = ESP_OK;
+    *pVal = 0;
+
+    if((id < MOTOR_ID_MAX) && (pVal != (fix16_t *)0)) {
+        me = &l_bdcMotor[id];
+        *pVal = me->speedCtrlRecord.q16_coeff_b;
+    } else {
+        retval = ESP_ERR_INVALID_ARG;
+    }
+
+    return (retval);
+}
+/*$enddef${bdcMotor::bdc_motor_get_speed_coeffB} ^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$define${bdcMotor::bdc_motor_get_speed_coeffC} vvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_get_speed_coeffC} ..................................*/
+esp_err_t bdc_motor_get_speed_coeffC(motor_id_t id, fix16_t * pVal) {
+    bdcMotor * me;
+    esp_err_t retval = ESP_OK;
+    *pVal = 0;
+
+    if((id < MOTOR_ID_MAX) && (pVal != (fix16_t *)0)) {
+        me = &l_bdcMotor[id];
+        *pVal = me->speedCtrlRecord.q16_coeff_c;
+    } else {
+        retval = ESP_ERR_INVALID_ARG;
+    }
+
+    return (retval);
+}
+/*$enddef${bdcMotor::bdc_motor_get_speed_coeffC} ^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$define${bdcMotor::bdc_motor_get_pos_Kp} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_get_pos_Kp} ........................................*/
+esp_err_t bdc_motor_get_pos_Kp(motor_id_t id, fix16_t * pVal) {
+    bdcMotor * me;
+    esp_err_t retval = ESP_OK;
+    *pVal = 0;
+
+    if((id < MOTOR_ID_MAX) && (pVal != (fix16_t *)0)) {
+        me = &l_bdcMotor[id];
+        *pVal = me->positionCtrlRecord.q16_kp;
+    } else {
+        retval = ESP_ERR_INVALID_ARG;
+    }
+
+    return (retval);
+}
+/*$enddef${bdcMotor::bdc_motor_get_pos_Kp} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+
+/*$define${bdcMotor::bdc_motor_set_position} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_set_position} ......................................*/
+esp_err_t bdc_motor_set_position(motor_id_t id, fix16_t value) {
+    bdcMotor * me;
+    esp_err_t retval = ESP_OK;
+
+    if(id < MOTOR_ID_MAX) {
+        me = &l_bdcMotor[id];
+        encoder_set_position_value(me->encoderId, value);
+    } else {
+        retval = ESP_ERR_INVALID_ARG;
+    }
+
+    return (retval);
+}
+/*$enddef${bdcMotor::bdc_motor_set_position} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$define${bdcMotor::bdc_motor_set_driver_conv_factor} vvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_set_driver_conv_factor} ............................*/
+esp_err_t bdc_motor_set_driver_conv_factor(motor_id_t id, fix16_t value) {
+    bdcMotor * me;
+    esp_err_t retval = ESP_OK;
+
+    if(id < MOTOR_ID_MAX) {
+        me = &l_bdcMotor[id];
+        motor_driver_set_i_duty_factor(me->driverId, value);
+    } else {
+        retval = ESP_ERR_INVALID_ARG;
+    }
+
+    return (retval);
+}
+/*$enddef${bdcMotor::bdc_motor_set_driver_conv_factor} ^^^^^^^^^^^^^^^^^^^^^*/
+/*$define${bdcMotor::bdc_motor_set_speed_coeffA} vvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_set_speed_coeffA} ..................................*/
+esp_err_t bdc_motor_set_speed_coeffA(motor_id_t id, fix16_t value) {
+    bdcMotor * me;
+    esp_err_t retval = ESP_OK;
+
+    if(id < MOTOR_ID_MAX) {
+        me = &l_bdcMotor[id];
+        me->speedCtrlRecord.q16_coeff_a = value;
+    } else {
+        retval = ESP_ERR_INVALID_ARG;
+    }
+
+    return (retval);
+}
+/*$enddef${bdcMotor::bdc_motor_set_speed_coeffA} ^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$define${bdcMotor::bdc_motor_set_speed_coeffB} vvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_set_speed_coeffB} ..................................*/
+esp_err_t bdc_motor_set_speed_coeffB(motor_id_t id, fix16_t value) {
+    bdcMotor * me;
+    esp_err_t retval = ESP_OK;
+
+    if(id < MOTOR_ID_MAX) {
+        me = &l_bdcMotor[id];
+        me->speedCtrlRecord.q16_coeff_b = value;
+    } else {
+        retval = ESP_ERR_INVALID_ARG;
+    }
+
+    return (retval);
+}
+/*$enddef${bdcMotor::bdc_motor_set_speed_coeffB} ^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$define${bdcMotor::bdc_motor_set_speed_coeffC} vvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_set_speed_coeffC} ..................................*/
+esp_err_t bdc_motor_set_speed_coeffC(motor_id_t id, fix16_t value) {
+    bdcMotor * me;
+    esp_err_t retval = ESP_OK;
+
+    if(id < MOTOR_ID_MAX) {
+        me = &l_bdcMotor[id];
+        me->speedCtrlRecord.q16_coeff_c = value;
+    } else {
+        retval = ESP_ERR_INVALID_ARG;
+    }
+
+    return (retval);
+}
+/*$enddef${bdcMotor::bdc_motor_set_speed_coeffC} ^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$define${bdcMotor::bdc_motor_set_pos_Kp} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_set_pos_Kp} ........................................*/
+esp_err_t bdc_motor_set_pos_Kp(motor_id_t id, fix16_t value) {
+    bdcMotor * me;
+    esp_err_t retval = ESP_OK;
+
+    if(id < MOTOR_ID_MAX) {
+        me = &l_bdcMotor[id];
+        me->positionCtrlRecord.q16_kp = value;
+    } else {
+        retval = ESP_ERR_INVALID_ARG;
+    }
+
+    return (retval);
+}
+/*$enddef${bdcMotor::bdc_motor_set_pos_Kp} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
 
 /*$define${bdcMotor::bdcMotor} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
 /*${bdcMotor::bdcMotor} ....................................................*/

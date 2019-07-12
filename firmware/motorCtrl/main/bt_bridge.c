@@ -20,7 +20,6 @@
 
 static const char *TAG = "bt_bridge";
 #define SPP_SERVER_NAME "SPP_SERVER"
-#define BRIDGE_NAME "esp_motor"
 
 static const esp_spp_mode_t esp_spp_mode = ESP_SPP_MODE_CB;
 static const esp_spp_sec_t sec_mask = ESP_SPP_SEC_NONE;
@@ -35,12 +34,15 @@ static bool bInit = false;
 static void esp_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
 {
     switch (event) {
-    case ESP_SPP_INIT_EVT:
+    case ESP_SPP_INIT_EVT: {
+        char btDevName[33];
         ESP_LOGI(TAG, "ESP_SPP_INIT_EVT");
-        esp_bt_dev_set_device_name(BRIDGE_NAME);
+        snprintf(btDevName, 32, "ESP_MTR_%02X:%02X:%02X:%02X:%02X:%02X", ESP_BD_ADDR_HEX(esp_bt_dev_get_address()));
+        esp_bt_dev_set_device_name(btDevName);
         esp_bt_gap_set_scan_mode(ESP_BT_SCAN_MODE_CONNECTABLE_DISCOVERABLE);
         esp_spp_start_srv(sec_mask,role_slave, 0, SPP_SERVER_NAME);
         break;
+    }
     case ESP_SPP_DISCOVERY_COMP_EVT:
         ESP_LOGI(TAG, "ESP_SPP_DISCOVERY_COMP_EVT");
         break;

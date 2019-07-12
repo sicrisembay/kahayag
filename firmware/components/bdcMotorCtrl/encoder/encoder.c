@@ -365,10 +365,19 @@ void encoder_setCount(encoder_id_t id, int32_t count)
     encoder_record_t *pEncRec;
     if(id < ENCODER_ID_MAX) {
         pEncRec = &encoderRecord[id];
-        pEncRec->s32_EncCount = 0;
+        pEncRec->s32_EncCount = count;
+        pcnt_counter_clear(pEncRec->unit);
     }
 }
 
+void encoder_set_position_value(encoder_id_t id, fix16_t value)
+{
+    encoder_record_t *pEncRec;
+    if(id < ENCODER_ID_MAX) {
+        pEncRec = &encoderRecord[id];
+        encoder_setCount(id, (value * pEncRec->u32_EncPerRev) / TWO_PI_FIX16);
+    }
+}
 fix16_t encoder_get_position(encoder_id_t id)
 {
     fix16_t retval = 0;

@@ -65,6 +65,13 @@ esp_err_t bdc_motor_run(
     fix16_t q16_refSpeed,
     void const * const sender);
 /*$enddecl${bdcMotor::bdc_motor_run} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$declare${bdcMotor::bdc_motor_open_loop} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_open_loop} .........................................*/
+esp_err_t bdc_motor_open_loop(
+    motor_id_t id,
+    fix16_t q16_OL_val,
+    void const * const sender);
+/*$enddecl${bdcMotor::bdc_motor_open_loop} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
 /*$declare${bdcMotor::bdc_motor_stop} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
 /*${bdcMotor::bdc_motor_stop} ..............................................*/
 esp_err_t bdc_motor_stop(motor_id_t id, void const * const sender);
@@ -81,5 +88,50 @@ fix16_t bdc_motor_get_position(motor_id_t id);
 /*${bdcMotor::bdc_motor_get_current} .......................................*/
 fix16_t bdc_motor_get_current(motor_id_t id);
 /*$enddecl${bdcMotor::bdc_motor_get_current} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$declare${bdcMotor::bdc_motor_get_driver_conv_factor} vvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_get_driver_conv_factor} ............................*/
+esp_err_t bdc_motor_get_driver_conv_factor(motor_id_t id, fix16_t * pVal);
+/*$enddecl${bdcMotor::bdc_motor_get_driver_conv_factor} ^^^^^^^^^^^^^^^^^^^^*/
+/*$declare${bdcMotor::bdc_motor_get_speed_coeffA} vvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_get_speed_coeffA} ..................................*/
+esp_err_t bdc_motor_get_speed_coeffA(motor_id_t id, fix16_t * pVal);
+/*$enddecl${bdcMotor::bdc_motor_get_speed_coeffA} ^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$declare${bdcMotor::bdc_motor_get_speed_coeffB} vvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_get_speed_coeffB} ..................................*/
+esp_err_t bdc_motor_get_speed_coeffB(motor_id_t id, fix16_t * pVal);
+/*$enddecl${bdcMotor::bdc_motor_get_speed_coeffB} ^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$declare${bdcMotor::bdc_motor_get_speed_coeffC} vvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_get_speed_coeffC} ..................................*/
+esp_err_t bdc_motor_get_speed_coeffC(motor_id_t id, fix16_t * pVal);
+/*$enddecl${bdcMotor::bdc_motor_get_speed_coeffC} ^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$declare${bdcMotor::bdc_motor_get_pos_Kp} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_get_pos_Kp} ........................................*/
+esp_err_t bdc_motor_get_pos_Kp(motor_id_t id, fix16_t * pVal);
+/*$enddecl${bdcMotor::bdc_motor_get_pos_Kp} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+
+/*$declare${bdcMotor::bdc_motor_set_position} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_set_position} ......................................*/
+esp_err_t bdc_motor_set_position(motor_id_t id, fix16_t value);
+/*$enddecl${bdcMotor::bdc_motor_set_position} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$declare${bdcMotor::bdc_motor_set_driver_conv_factor} vvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_set_driver_conv_factor} ............................*/
+esp_err_t bdc_motor_set_driver_conv_factor(motor_id_t id, fix16_t value);
+/*$enddecl${bdcMotor::bdc_motor_set_driver_conv_factor} ^^^^^^^^^^^^^^^^^^^^*/
+/*$declare${bdcMotor::bdc_motor_set_speed_coeffA} vvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_set_speed_coeffA} ..................................*/
+esp_err_t bdc_motor_set_speed_coeffA(motor_id_t id, fix16_t value);
+/*$enddecl${bdcMotor::bdc_motor_set_speed_coeffA} ^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$declare${bdcMotor::bdc_motor_set_speed_coeffB} vvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_set_speed_coeffB} ..................................*/
+esp_err_t bdc_motor_set_speed_coeffB(motor_id_t id, fix16_t value);
+/*$enddecl${bdcMotor::bdc_motor_set_speed_coeffB} ^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$declare${bdcMotor::bdc_motor_set_speed_coeffC} vvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_set_speed_coeffC} ..................................*/
+esp_err_t bdc_motor_set_speed_coeffC(motor_id_t id, fix16_t value);
+/*$enddecl${bdcMotor::bdc_motor_set_speed_coeffC} ^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*$declare${bdcMotor::bdc_motor_set_pos_Kp} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*${bdcMotor::bdc_motor_set_pos_Kp} ........................................*/
+esp_err_t bdc_motor_set_pos_Kp(motor_id_t id, fix16_t value);
+/*$enddecl${bdcMotor::bdc_motor_set_pos_Kp} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
 
 #endif /* _BDC_MOTOR_H_ */

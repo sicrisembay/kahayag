@@ -39,12 +39,63 @@ enum RESPONSE_STATUS {
 // param3: Motor Jog Speed in radian/second (Q16 format)
 //*****************************************************************************
 #define CMD_MOTOR_MOVE                          (0x12)
-
+//*****************************************************************************
+// CmdId : CMD_MOTOR_OPEN_LOOP
+// param1: Motor ID (0: MOTOR_ONE; 1: MOTOR_TWO; 2: MOTOR_THREE; 3: MOTOR_FOUR)
+// param2: Open Loop Value
+// param3: Unused
+//*****************************************************************************
 #define CMD_MOTOR_OPEN_LOOP                     (0x13)
-#define CMD_MOTOR_SET_SPEED_COEFFA              (0x14)
-#define CMD_MOTOR_SET_SPEED_COEFFB              (0x15)
-#define CMD_MOTOR_SET_SPEED_COEFFC              (0x16)
-#define CMD_MOTOR_SET_POS_KP                    (0x17)
+//*****************************************************************************
+// CmdId : CMD_MOTOR_GET_CTRL_PARAM
+// param1: Motor ID (0: MOTOR_ONE; 1: MOTOR_TWO; 2: MOTOR_THREE; 3: MOTOR_FOUR)
+// param2: Unused
+// param3: Unused
+//*****************************************************************************
+#define CMD_MOTOR_GET_CTRL_PARAM                (0x14)
+//*****************************************************************************
+// CmdId : CMD_MOTOR_SET_SPEED_COEFFA
+// param1: Motor ID (0: MOTOR_ONE; 1: MOTOR_TWO; 2: MOTOR_THREE; 3: MOTOR_FOUR)
+// param2: Value of Control Coefficient A (Fixed Pt Q16)
+// param3: Unused
+//*****************************************************************************
+#define CMD_MOTOR_SET_SPEED_COEFFA              (0x15)
+//*****************************************************************************
+// CmdId : CMD_MOTOR_SET_SPEED_COEFFB
+// param1: Motor ID (0: MOTOR_ONE; 1: MOTOR_TWO; 2: MOTOR_THREE; 3: MOTOR_FOUR)
+// param2: Value of Control Coefficient B (Fixed Pt Q16)
+// param3: Unused
+//*****************************************************************************
+#define CMD_MOTOR_SET_SPEED_COEFFB              (0x16)
+//*****************************************************************************
+// CmdId : CMD_MOTOR_SET_SPEED_COEFFC
+// param1: Motor ID (0: MOTOR_ONE; 1: MOTOR_TWO; 2: MOTOR_THREE; 3: MOTOR_FOUR)
+// param2: Value of Control Coefficient C (Fixed Pt Q16)
+// param3: Unused
+//*****************************************************************************
+#define CMD_MOTOR_SET_SPEED_COEFFC              (0x17)
+//*****************************************************************************
+// CmdId : CMD_MOTOR_SET_POS_KP
+// param1: Motor ID (0: MOTOR_ONE; 1: MOTOR_TWO; 2: MOTOR_THREE; 3: MOTOR_FOUR)
+// param2: Value of Control Kp (Fixed Pt Q16)
+// param3: Unused
+//*****************************************************************************
+#define CMD_MOTOR_SET_POS_KP                    (0x18)
+//*****************************************************************************
+// CmdId : CMD_MOTOR_SET_DRV_CONV_FACTOR
+// param1: Motor ID (0: MOTOR_ONE; 1: MOTOR_TWO; 2: MOTOR_THREE; 3: MOTOR_FOUR)
+// param2: Value (Fixed Pt Q16)
+// param3: Unused
+//*****************************************************************************
+#define CMD_MOTOR_SET_DRV_CONV_FACTOR           (0x19)
+//*****************************************************************************
+// CmdId : CMD_MOTOR_SET_POSITION_VALUE
+// param1: Motor ID (0: MOTOR_ONE; 1: MOTOR_TWO; 2: MOTOR_THREE; 3: MOTOR_FOUR)
+// param2: Value (Fixed Pt Q16)
+// param3: Unused
+//*****************************************************************************
+#define CMD_MOTOR_SET_POSITION_VALUE            (0x1A)
+
 //*****************************************************************************
 // CmdId : CMD_DATA_STREAM_SET_FLAG             (0x30)
 // param1: StreamFlagMask

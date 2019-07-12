@@ -56,6 +56,7 @@ void encoder_deinit(void);
 void encoder_update(encoder_id_t id);
 int32_t encoder_getCount(encoder_id_t id);
 void encoder_setCount(encoder_id_t id, int32_t count);
+void encoder_set_position_value(encoder_id_t id, fix16_t value);
 fix16_t encoder_get_position(encoder_id_t id);
 fix16_t encoder_get_speed(encoder_id_t id);
 bool encoder_IsValid(encoder_id_t id);

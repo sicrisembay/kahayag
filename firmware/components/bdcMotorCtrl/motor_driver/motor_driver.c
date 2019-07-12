@@ -399,6 +399,24 @@ void motor_driver_set_current(motor_driver_id_t id, fix16_t value)
     }
 }
 
+void motor_driver_set_i_duty_factor(motor_driver_id_t id, fix16_t value)
+{
+    if(id < MOTOR_DRIVER_MAX) {
+        if(MOTOR_DRIVER_CFG[id].mode == MOTOR_DRIVER_MODE_CONST_CURRENT) {
+            q16_CurrentToDutyFactor[id] = value;
+        }
+    }
+}
+fix16_t motor_driver_get_i_duty_factor(motor_driver_id_t id)
+{
+    fix16_t retval = 0;
+    if(id < MOTOR_DRIVER_MAX) {
+        if(MOTOR_DRIVER_CFG[id].mode == MOTOR_DRIVER_MODE_CONST_CURRENT) {
+            retval = q16_CurrentToDutyFactor[id];
+        }
+    }
+    return(retval);
+}
 fix16_t motor_driver_get_extPwm(motor_driver_id_t id)
 {
     fix16_t retval = (fix16_t)0;

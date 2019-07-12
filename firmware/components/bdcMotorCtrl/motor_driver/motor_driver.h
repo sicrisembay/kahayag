@@ -37,6 +37,8 @@ void motor_driver_init(void);
 void motor_driver_safe_state(void);
 void motor_driver_set_extPwm(motor_driver_id_t id, fix16_t value);
 void motor_driver_set_current(motor_driver_id_t id, fix16_t value);
+void motor_driver_set_i_duty_factor(motor_driver_id_t id, fix16_t value);
+fix16_t motor_driver_get_i_duty_factor(motor_driver_id_t id);
 fix16_t motor_driver_get_extPwm(motor_driver_id_t id);
 fix16_t motor_driver_get_currentRef(motor_driver_id_t id);
 motor_driver_mode_t motor_driver_get_mode(motor_driver_id_t id);

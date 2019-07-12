@@ -447,6 +447,23 @@ if(id &lt; MOTOR_ID_MAX) {
 
 return(retval);</code>
   </operation>
+  <operation name="bdc_motor_open_loop" type="esp_err_t" visibility="0x00" properties="0x00">
+   <parameter name="id" type="motor_id_t"/>
+   <parameter name="q16_OL_val" type="fix16_t"/>
+   <parameter name="sender" type="void const * const"/>
+   <code>esp_err_t retval = ESP_OK;
+bdcMotorOLEvt *evtPtr;
+
+if(id &lt; MOTOR_ID_MAX) {
+    evtPtr = Q_NEW(bdcMotorOLEvt, BDC_MOTOR_OPEN_LOOP_SIG);
+    evtPtr-&gt;q16_openLoopValue = q16_OL_val;
+    QACTIVE_POST(AO_bdcMotor[id], (QEvt *)(evtPtr), sender);
+} else {
+    retval = ESP_ERR_INVALID_ARG;
+}
+
+return(retval);</code>
+  </operation>
   <operation name="bdc_motor_stop" type="esp_err_t" visibility="0x00" properties="0x00">
    <parameter name="id" type="motor_id_t"/>
    <parameter name="sender" type="void const * const"/>
@@ -494,6 +511,176 @@ fix16_t retval = 0;
 if(id &lt; MOTOR_ID_MAX) {
     me = &amp;l_bdcMotor[id];
     retval = motor_driver_get_currentRef(me-&gt;driverId);
+}
+
+return (retval);</code>
+  </operation>
+  <operation name="bdc_motor_get_driver_conv_factor" type="esp_err_t" visibility="0x00" properties="0x00">
+   <parameter name="id" type="motor_id_t"/>
+   <parameter name="pVal" type="fix16_t *"/>
+   <code>bdcMotor * me;
+esp_err_t retval = ESP_OK;
+*pVal = 0;
+
+if((id &lt; MOTOR_ID_MAX) &amp;&amp; (pVal != (fix16_t *)0)) {
+    me = &amp;l_bdcMotor[id];
+    *pVal = motor_driver_get_i_duty_factor(me-&gt;driverId);
+} else {
+    retval = ESP_ERR_INVALID_ARG;
+}
+
+return (retval);</code>
+  </operation>
+  <operation name="bdc_motor_get_speed_coeffA" type="esp_err_t" visibility="0x00" properties="0x00">
+   <parameter name="id" type="motor_id_t"/>
+   <parameter name="pVal" type="fix16_t *"/>
+   <code>bdcMotor * me;
+esp_err_t retval = ESP_OK;
+*pVal = 0;
+
+if((id &lt; MOTOR_ID_MAX) &amp;&amp; (pVal != (fix16_t *)0)) {
+    me = &amp;l_bdcMotor[id];
+    *pVal = me-&gt;speedCtrlRecord.q16_coeff_a;
+} else {
+    retval = ESP_ERR_INVALID_ARG;
+}
+
+return (retval);</code>
+  </operation>
+  <operation name="bdc_motor_get_speed_coeffB" type="esp_err_t" visibility="0x00" properties="0x00">
+   <parameter name="id" type="motor_id_t"/>
+   <parameter name="pVal" type="fix16_t *"/>
+   <code>bdcMotor * me;
+esp_err_t retval = ESP_OK;
+*pVal = 0;
+
+if((id &lt; MOTOR_ID_MAX) &amp;&amp; (pVal != (fix16_t *)0)) {
+    me = &amp;l_bdcMotor[id];
+    *pVal = me-&gt;speedCtrlRecord.q16_coeff_b;
+} else {
+    retval = ESP_ERR_INVALID_ARG;
+}
+
+return (retval);</code>
+  </operation>
+  <operation name="bdc_motor_get_speed_coeffC" type="esp_err_t" visibility="0x00" properties="0x00">
+   <parameter name="id" type="motor_id_t"/>
+   <parameter name="pVal" type="fix16_t *"/>
+   <code>bdcMotor * me;
+esp_err_t retval = ESP_OK;
+*pVal = 0;
+
+if((id &lt; MOTOR_ID_MAX) &amp;&amp; (pVal != (fix16_t *)0)) {
+    me = &amp;l_bdcMotor[id];
+    *pVal = me-&gt;speedCtrlRecord.q16_coeff_c;
+} else {
+    retval = ESP_ERR_INVALID_ARG;
+}
+
+return (retval);</code>
+  </operation>
+  <operation name="bdc_motor_get_pos_Kp" type="esp_err_t" visibility="0x00" properties="0x00">
+   <parameter name="id" type="motor_id_t"/>
+   <parameter name="pVal" type="fix16_t *"/>
+   <code>bdcMotor * me;
+esp_err_t retval = ESP_OK;
+*pVal = 0;
+
+if((id &lt; MOTOR_ID_MAX) &amp;&amp; (pVal != (fix16_t *)0)) {
+    me = &amp;l_bdcMotor[id];
+    *pVal = me-&gt;positionCtrlRecord.q16_kp;
+} else {
+    retval = ESP_ERR_INVALID_ARG;
+}
+
+return (retval);</code>
+  </operation>
+  <operation name="bdc_motor_set_driver_conv_factor" type="esp_err_t" visibility="0x00" properties="0x00">
+   <parameter name="id" type="motor_id_t"/>
+   <parameter name="value" type="fix16_t"/>
+   <code>bdcMotor * me;
+esp_err_t retval = ESP_OK;
+
+if(id &lt; MOTOR_ID_MAX) {
+    me = &amp;l_bdcMotor[id];
+    motor_driver_set_i_duty_factor(me-&gt;driverId, value);
+} else {
+    retval = ESP_ERR_INVALID_ARG;
+}
+
+return (retval);</code>
+  </operation>
+  <operation name="bdc_motor_set_speed_coeffA" type="esp_err_t" visibility="0x00" properties="0x00">
+   <parameter name="id" type="motor_id_t"/>
+   <parameter name="value" type="fix16_t"/>
+   <code>bdcMotor * me;
+esp_err_t retval = ESP_OK;
+
+if(id &lt; MOTOR_ID_MAX) {
+    me = &amp;l_bdcMotor[id];
+    me-&gt;speedCtrlRecord.q16_coeff_a = value;
+} else {
+    retval = ESP_ERR_INVALID_ARG;
+}
+
+return (retval);</code>
+  </operation>
+  <operation name="bdc_motor_set_speed_coeffB" type="esp_err_t" visibility="0x00" properties="0x00">
+   <parameter name="id" type="motor_id_t"/>
+   <parameter name="value" type="fix16_t"/>
+   <code>bdcMotor * me;
+esp_err_t retval = ESP_OK;
+
+if(id &lt; MOTOR_ID_MAX) {
+    me = &amp;l_bdcMotor[id];
+    me-&gt;speedCtrlRecord.q16_coeff_b = value;
+} else {
+    retval = ESP_ERR_INVALID_ARG;
+}
+
+return (retval);</code>
+  </operation>
+  <operation name="bdc_motor_set_speed_coeffC" type="esp_err_t" visibility="0x00" properties="0x00">
+   <parameter name="id" type="motor_id_t"/>
+   <parameter name="value" type="fix16_t"/>
+   <code>bdcMotor * me;
+esp_err_t retval = ESP_OK;
+
+if(id &lt; MOTOR_ID_MAX) {
+    me = &amp;l_bdcMotor[id];
+    me-&gt;speedCtrlRecord.q16_coeff_c = value;
+} else {
+    retval = ESP_ERR_INVALID_ARG;
+}
+
+return (retval);</code>
+  </operation>
+  <operation name="bdc_motor_set_pos_Kp" type="esp_err_t" visibility="0x00" properties="0x00">
+   <parameter name="id" type="motor_id_t"/>
+   <parameter name="value" type="fix16_t"/>
+   <code>bdcMotor * me;
+esp_err_t retval = ESP_OK;
+
+if(id &lt; MOTOR_ID_MAX) {
+    me = &amp;l_bdcMotor[id];
+    me-&gt;positionCtrlRecord.q16_kp = value;
+} else {
+    retval = ESP_ERR_INVALID_ARG;
+}
+
+return (retval);</code>
+  </operation>
+  <operation name="bdc_motor_set_position" type="esp_err_t" visibility="0x00" properties="0x00">
+   <parameter name="id" type="motor_id_t"/>
+   <parameter name="value" type="fix16_t"/>
+   <code>bdcMotor * me;
+esp_err_t retval = ESP_OK;
+
+if(id &lt; MOTOR_ID_MAX) {
+    me = &amp;l_bdcMotor[id];
+    encoder_set_position_value(me-&gt;encoderId, value);
+} else {
+    retval = ESP_ERR_INVALID_ARG;
 }
 
 return (retval);</code>
@@ -643,10 +830,23 @@ $declare(bdcMotor::AO_bdcMotor[MOTOR_ID_MAX])
 $declare(bdcMotor::bdc_motor_ctor)
 $declare(bdcMotor::bdc_motor_move)
 $declare(bdcMotor::bdc_motor_run)
+$declare(bdcMotor::bdc_motor_open_loop)
 $declare(bdcMotor::bdc_motor_stop)
 $declare(bdcMotor::bdc_motor_get_speed)
 $declare(bdcMotor::bdc_motor_get_position)
 $declare(bdcMotor::bdc_motor_get_current)
+$declare(bdcMotor::bdc_motor_get_driver_conv_factor)
+$declare(bdcMotor::bdc_motor_get_speed_coeffA)
+$declare(bdcMotor::bdc_motor_get_speed_coeffB)
+$declare(bdcMotor::bdc_motor_get_speed_coeffC)
+$declare(bdcMotor::bdc_motor_get_pos_Kp)
+
+$declare(bdcMotor::bdc_motor_set_position)
+$declare(bdcMotor::bdc_motor_set_driver_conv_factor)
+$declare(bdcMotor::bdc_motor_set_speed_coeffA)
+$declare(bdcMotor::bdc_motor_set_speed_coeffB)
+$declare(bdcMotor::bdc_motor_set_speed_coeffC)
+$declare(bdcMotor::bdc_motor_set_pos_Kp)
 
 #endif /* _BDC_MOTOR_H_ */</text>
    </file>
@@ -774,10 +974,23 @@ $declare(bdcMotor::Events::bdcMotorPositionEvt)
 $define(bdcMotor::bdc_motor_ctor)
 $define(bdcMotor::bdc_motor_move)
 $define(bdcMotor::bdc_motor_run)
+$define(bdcMotor::bdc_motor_open_loop)
 $define(bdcMotor::bdc_motor_stop)
 $define(bdcMotor::bdc_motor_get_speed)
 $define(bdcMotor::bdc_motor_get_position)
 $define(bdcMotor::bdc_motor_get_current)
+$define(bdcMotor::bdc_motor_get_driver_conv_factor)
+$define(bdcMotor::bdc_motor_get_speed_coeffA)
+$define(bdcMotor::bdc_motor_get_speed_coeffB)
+$define(bdcMotor::bdc_motor_get_speed_coeffC)
+$define(bdcMotor::bdc_motor_get_pos_Kp)
+
+$define(bdcMotor::bdc_motor_set_position)
+$define(bdcMotor::bdc_motor_set_driver_conv_factor)
+$define(bdcMotor::bdc_motor_set_speed_coeffA)
+$define(bdcMotor::bdc_motor_set_speed_coeffB)
+$define(bdcMotor::bdc_motor_set_speed_coeffC)
+$define(bdcMotor::bdc_motor_set_pos_Kp)
 
 $define(bdcMotor::bdcMotor)
 </text>
