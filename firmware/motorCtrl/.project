@@ -40,6 +40,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/components/fixPt</locationURI>
 		</link>
 		<link>
+			<name>components/invensense_motion_driver</name>
+			<type>2</type>
+			<locationURI>PARENT-1-PROJECT_LOC/components/invensense_motion_driver</locationURI>
+		</link>
+		<link>
 			<name>components/qpc</name>
 			<type>2</type>
 			<locationURI>PARENT-1-PROJECT_LOC/components/qpc</locationURI>

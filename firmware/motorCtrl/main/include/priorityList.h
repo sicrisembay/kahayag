@@ -3,6 +3,7 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "qpc.h"
 
 enum task_priority {
     PRIORITY_WORKER = tskIDLE_PRIORITY + 1,

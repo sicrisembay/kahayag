@@ -43,6 +43,20 @@
 							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.cygwin.base.1398999525" name="Cygwin C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.cygwin.base"/>
 						</toolChain>
 					</folderInfo>
+					<folderInfo id="cdt.managedbuild.toolchain.gnu.cross.base.70384703.447629800" name="/" resourcePath="components/invensense_motion_driver">
+						<toolChain id="cdt.managedbuild.toolchain.gnu.cygwin.base.1020095395" name="Cygwin GCC" superClass="cdt.managedbuild.toolchain.gnu.cygwin.base" unusedChildren="">
+							<tool id="cdt.managedbuild.tool.gnu.assembler.cygwin.base.331781529" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.cygwin.base.391175820">
+								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1248881296" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.archiver.cygwin.base.635640045" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.cygwin.base.491794730"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.cygwin.base.839844418" name="Cygwin C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.cygwin.base.450206200"/>
+							<tool id="cdt.managedbuild.tool.gnu.c.compiler.cygwin.base.1071964231" name="Cygwin C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.cygwin.base.2085680799">
+								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.cygwin.1467749269" superClass="cdt.managedbuild.tool.gnu.c.compiler.input.cygwin"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.c.linker.cygwin.base.1521903858" name="Cygwin C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.cygwin.base.706962614"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.cygwin.base.285673895" name="Cygwin C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.cygwin.base.1398999525"/>
+						</toolChain>
+					</folderInfo>
 					<sourceEntries>
 						<entry excluding="components/qpc/3rd_party/FreeRTOS" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>

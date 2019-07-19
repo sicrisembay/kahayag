@@ -9,6 +9,7 @@
 #include "bt_bridge.h"
 #include "dataStreamer.h"
 #include "mpu9250.h"
+#include "eMD.h"
 
 static const char *TAG = "main";
 
@@ -50,6 +51,8 @@ void app_main()
 
     /* initialize MPU9250 */
     mpu9250_init();
+
+    eMD_Init();
 
     /* initialize bluetooth SPP */
     bt_bridge_init();

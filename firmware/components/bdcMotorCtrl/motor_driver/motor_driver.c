@@ -13,10 +13,23 @@
 //*****************************************************************************
 // Private definitions.
 //*****************************************************************************
+#if defined(CONFIG_MOTOR_PWM_FREQ_40KHZ)
 #define PWM_CLK_PRESCALER     (1)
-#define PWM_CLK_FREQ          ((2 * APB_CLK_FREQ) / (PWM_CLK_PRESCALER + 1)) /* 80MHz */
+#define PWM_TIMER_PRESCALER   (0)
+#define PWM_FREQUENCY         (80000)  /* For Up-Down Mode, 2x the frequency of 40kHz */
+#elif defined(CONFIG_MOTOR_PWM_FREQ_20KHZ)
+#define PWM_CLK_PRESCALER     (1)
 #define PWM_TIMER_PRESCALER   (1)
 #define PWM_FREQUENCY         (40000)  /* For Up-Down Mode, 2x the frequency of 20kHz */
+#elif defined(CONFIG_MOTOR_PWM_FREQ_80KHZ)
+#define PWM_CLK_PRESCALER     (0)
+#define PWM_TIMER_PRESCALER   (0)
+#define PWM_FREQUENCY         (160000)  /* For Up-Down Mode, 2x the frequency of 80kHz */
+#else /* Defaults to 20kHz */
+#define PWM_TIMER_PRESCALER   (1)
+#define PWM_FREQUENCY         (40000)  /* For Up-Down Mode, 2x the frequency of 20kHz */
+#endif
+#define PWM_CLK_FREQ          ((2 * APB_CLK_FREQ) / (PWM_CLK_PRESCALER + 1))
 #define PWM_PULSE_PER_PERIOD  (PWM_CLK_FREQ / (PWM_FREQUENCY * (PWM_TIMER_PRESCALER + 1)))
 
 /*
@@ -29,11 +42,12 @@
  * CURRENT_TO_DUTY_FACTOR = 0.465835
  * Q16_CURRENT_TO_DUTY_FACTOR = 30529
  */
+#define Q16_CURRENT_TO_DUTY_DEFAULT         (30529)
 static fix16_t const Q16_CURRENT_TO_DUTY_FACTOR[MOTOR_DRIVER_MAX] = {
-        30529,
-        30529,
-        30529,
-        30529
+        Q16_CURRENT_TO_DUTY_DEFAULT,
+        Q16_CURRENT_TO_DUTY_DEFAULT,
+        Q16_CURRENT_TO_DUTY_DEFAULT,
+        Q16_CURRENT_TO_DUTY_DEFAULT
 };
 #define Q16_BD62220_MAX_CURRENT         ((fix16_t)(131072)) /* 2.0A */
 
@@ -140,6 +154,7 @@ static motor_driver_config_t const MOTOR_DRIVER_CFG[MOTOR_DRIVER_MAX] = {
 static fix16_t q16_dutyCycle[MOTOR_DRIVER_MAX] = {0};
 static fix16_t q16_CurrentRef[MOTOR_DRIVER_MAX] = {0};
 static fix16_t q16_CurrentToDutyFactor[MOTOR_DRIVER_MAX] = {0};
+static fix16_t q16_CorrectionFactor[MOTOR_DRIVER_MAX] = {0};
 
 //*****************************************************************************
 // Private function prototypes.
@@ -204,6 +219,7 @@ void motor_driver_init(void)
         q16_CurrentRef[id] = (fix16_t)0;
         q16_dutyCycle[id] = (fix16_t)0;
         q16_CurrentToDutyFactor[id] = Q16_CURRENT_TO_DUTY_FACTOR[id];
+        q16_CorrectionFactor[id] = fix16_one;
 
         if(MOTOR_DRIVER_CFG[id].mode == MOTOR_DRIVER_MODE_EXT_PWM) {
             /* External PWM is applied to INA and INB of Rohm Driver */
@@ -403,7 +419,8 @@ void motor_driver_set_i_duty_factor(motor_driver_id_t id, fix16_t value)
 {
     if(id < MOTOR_DRIVER_MAX) {
         if(MOTOR_DRIVER_CFG[id].mode == MOTOR_DRIVER_MODE_CONST_CURRENT) {
-            q16_CurrentToDutyFactor[id] = value;
+            q16_CorrectionFactor[id] = value;
+            q16_CurrentToDutyFactor[id] = fix16_mul(Q16_CURRENT_TO_DUTY_FACTOR[id], value);
         }
     }
 }
@@ -412,7 +429,7 @@ fix16_t motor_driver_get_i_duty_factor(motor_driver_id_t id)
     fix16_t retval = 0;
     if(id < MOTOR_DRIVER_MAX) {
         if(MOTOR_DRIVER_CFG[id].mode == MOTOR_DRIVER_MODE_CONST_CURRENT) {
-            retval = q16_CurrentToDutyFactor[id];
+            retval = q16_CorrectionFactor[id];
         }
     }
     return(retval);

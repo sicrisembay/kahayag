@@ -14,6 +14,18 @@ menu "Motor Configuration"
     depends on !FREERTOS_UNICORE
   endchoice #MOTOR_PINNED_TO_CORE_CHOICE
   
+  choice MOTOR_PWM_FREQ_CHOICE
+    prompt "PWM Frequency"
+    help
+      Specify the supported PWM frequency
+    config MOTOR_PWM_FREQ_20KHZ
+      bool "20kHz"
+    config MOTOR_PWM_FREQ_40KHZ
+      bool "40kHz"
+    config MOTOR_PWM_FREQ_80KHZ
+      bool "80kHz"
+  endchoice #MOTOR_PWM_FREQ_CHOICE
+  
   config MOTOR_STACK_SIZE
     int "Stack Size of Motor Task"
     default 4096

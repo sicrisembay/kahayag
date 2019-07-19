@@ -1,0 +1,15 @@
+menu "Invensense Motion Driver"
+  choice INVENSENSE_PINNED_TO_CORE_CHOICE
+    prompt "The cpu core which Invensense eMD run"
+    depends on !FREERTOS_UNICORE
+    help
+      Specify the cpu core to run Invensense eMD.
+    config INVENSENSE_PINNED_TO_CORE_0
+      bool "Core 0 (PRO CPU)"
+    config INVENSENSE_PINNED_TO_CORE_1
+        bool "Core 1 (APP CPU)"
+    config INVENSENSE_NO_CORE_AFFINITY
+      bool "No Affinity (PRO or APP CPU)"
+  endchoice #INVENSENSE_PINNED_TO_CORE_CHOICE
+  
+endmenu # Invensense Motion Driver

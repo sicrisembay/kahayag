@@ -908,18 +908,18 @@ static motor_driver_id_t const MOTOR_DRIVER[MOTOR_ID_MAX] = {
 
 /* Motor Speed Controller Coeff A */
 static fix16_t const MOTOR_CTRL_SPD_A[MOTOR_ID_MAX] = {
-    138,        // MOTOR_ONE Speed Control CoeffA: 0.0021057
-    138,        // MOTOR_TWO Speed Control CoeffA: 0.0021057
-    138,        // MOTOR_THREE Speed Control CoeffA: 0.0021057
-    138         // MOTOR_FOUR Speed Control CoeffA: 0.0021057
+    98,         // MOTOR_ONE Speed Control CoeffA: 0.0014954
+    98,         // MOTOR_TWO Speed Control CoeffA: 0.0014954
+    98,         // MOTOR_THREE Speed Control CoeffA: 0.0014954
+    98          // MOTOR_FOUR Speed Control CoeffA: 0.0014954
 };
 
 /* Motor Speed Controller Coeff B */
 static fix16_t const MOTOR_CTRL_SPD_B[MOTOR_ID_MAX] = {
-    -131,       // MOTOR_ONE Speed Control CoeffB: -0.001999
-    -131,       // MOTOR_TWO Speed Control CoeffB: -0.001999
-    -131,       // MOTOR_THREE Speed Control CoeffB: -0.001999
-    -131        // MOTOR_FOUR Speed Control CoeffB: -0.001999
+    -92,        // MOTOR_ONE Speed Control CoeffB: -0.001404
+    -92,        // MOTOR_TWO Speed Control CoeffB: -0.001404
+    -92,        // MOTOR_THREE Speed Control CoeffB: -0.001404
+    -92         // MOTOR_FOUR Speed Control CoeffB: -0.001404
 };
 
 /* Motor Speed Controller Coeff C */
@@ -939,10 +939,10 @@ static fix16_t const MOTOR_MAX_SPEED[MOTOR_ID_MAX] = {
 
 /* Motor Position Controller Kp */
 static fix16_t const MOTOR_CTRL_POS_KP[MOTOR_ID_MAX] = {
-    418120,     // MOTOR_ONE Position Kp: 6.38
-    418120,     // MOTOR_TWO Position Kp: 6.38
-    418120,     // MOTOR_THREE Position Kp: 6.38
-    418120      // MOTOR_FOUR Position Kp: 6.38
+    655360,     // MOTOR_ONE Position Kp: 10.0
+    655360,     // MOTOR_TWO Position Kp: 10.0
+    655360,     // MOTOR_THREE Position Kp: 10.0
+    655360      // MOTOR_FOUR Position Kp: 10.0
 };
 
 /* Motor Position Stop Tolerance */
