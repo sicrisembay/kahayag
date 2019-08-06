@@ -5,6 +5,7 @@
 #include "esp_err.h"
 #include "priorityList.h"
 #include "mpu9250.h"
+#include "fix16.h"
 
 static const char *TAG = "mpu9250";
 
@@ -87,6 +88,118 @@ static esp_err_t _i2c_write_byte(uint8_t addr, uint8_t reg, uint8_t byte) {
     return(retval);
 }
 
+#define Q16_1_01    (66191)
+
+static void _mpu9250_selftest(void)
+{
+    uint8_t rawData[14] = {0};
+    uint8_t selfTest[6];
+    int32_t gAvg[3] = {0};
+    int32_t aAvg[3] = {0};
+    int32_t aSTAvg[3] = {0};
+    int32_t gSTAvg[3] = {0};
+    fix16_t factoryTrim[6];
+    uint8_t FS = 0;
+    int32_t ii;
+    TickType_t xLastWakeTime;
+    fix16_t aTrimDelta[3];
+    fix16_t gTrimDelta[3];
+
+    _i2c_write_byte(MPU9250_DEV_ADDR, MPU9250_REG_ADDR_SMPLRT_DIV, 0x00);    // Set gyro sample rate to 1 kHz
+    _i2c_write_byte(MPU9250_DEV_ADDR, MPU9250_REG_ADDR_CONFIG, 0x02);        // Set gyro sample rate to 1 kHz and DLPF to 92 Hz
+    _i2c_write_byte(MPU9250_DEV_ADDR, MPU9250_REG_ADDR_GYRO_CONFIG, 0x01); // Set full scale range for the gyro to 250 dps
+    _i2c_write_byte(MPU9250_DEV_ADDR, MPU9250_REG_ADDR_ACCEL_CONFIG_2, 0x02); // Set accelerometer rate to 1 kHz and bandwidth to 92 Hz
+    _i2c_write_byte(MPU9250_DEV_ADDR, MPU9250_REG_ADDR_ACCEL_CONFIG, 0x01); // Set full scale range for the accelerometer to 2 g
+
+    xLastWakeTime = xTaskGetTickCount();
+
+    for(ii = 0; ii < 200; ii++) { // get average current values of gyro and acclerometer
+        vTaskDelayUntil( &xLastWakeTime, 1);
+        _i2c_read(MPU9250_DEV_ADDR, MPU9250_REG_ADDR_ACCEL_XOUT_H, &rawData[0], 14);        // Read the six raw data registers into data array
+        aAvg[0] += (int16_t)(((int16_t)rawData[0] << 8) | rawData[1]);
+        aAvg[1] += (int16_t)(((int16_t)rawData[2] << 8) | rawData[3]);
+        aAvg[2] += (int16_t)(((int16_t)rawData[4] << 8) | rawData[5]);
+        // Temperature rawData[6] and rawData[7]
+        gAvg[0] += (int16_t)(((int16_t)rawData[8] << 8) | rawData[9]);
+        gAvg[1] += (int16_t)(((int16_t)rawData[10] << 8) | rawData[11]);
+        gAvg[2] += (int16_t)(((int16_t)rawData[12] << 8) | rawData[13]);
+    }
+    ESP_LOGI(TAG,"Sum A:(%d, %d, %d) Sum G: (%d, %d, %d)",
+                aAvg[0], aAvg[1], aAvg[2],
+                gAvg[0], gAvg[1], gAvg[2]);
+
+    for(ii = 0; ii < 3; ii++) {
+        aAvg[ii] /= 200;
+        gAvg[ii] /= 200;
+    }
+
+    // Configure the accelerometer for self-test
+    _i2c_write_byte(MPU9250_DEV_ADDR, MPU9250_REG_ADDR_ACCEL_CONFIG, 0xE0); // Enable self test on all three axes and set accelerometer range to +/- 2 g
+    _i2c_write_byte(MPU9250_DEV_ADDR, MPU9250_REG_ADDR_GYRO_CONFIG,  0xE0); // Enable self test on all three axes and set gyro range to +/- 250 degrees/s
+    vTaskDelay(25);  // Delay a while to let the device stabilize
+
+    for(ii = 0; ii < 200; ii++) { // get average current values of gyro and acclerometer
+        vTaskDelayUntil( &xLastWakeTime, 1);
+        _i2c_read(MPU9250_DEV_ADDR, MPU9250_REG_ADDR_ACCEL_XOUT_H, &rawData[0], 14);        // Read the six raw data registers into data array
+        aSTAvg[0] += (int16_t)(((int16_t)rawData[0] << 8) | rawData[1]);
+        aSTAvg[1] += (int16_t)(((int16_t)rawData[2] << 8) | rawData[3]);
+        aSTAvg[2] += (int16_t)(((int16_t)rawData[4] << 8) | rawData[5]);
+        // Temperature rawData[6] and rawData[7]
+        gSTAvg[0] += (int16_t)(((int16_t)rawData[8] << 8) | rawData[9]);
+        gSTAvg[1] += (int16_t)(((int16_t)rawData[10] << 8) | rawData[11]);
+        gSTAvg[2] += (int16_t)(((int16_t)rawData[12] << 8) | rawData[13]);
+    }
+
+    for(ii = 0; ii < 3; ii++) {
+        aSTAvg[ii] /= 200;
+        gSTAvg[ii] /= 200;
+    }
+
+    // Configure the gyro and accelerometer for normal operation
+    _i2c_write_byte(MPU9250_DEV_ADDR, MPU9250_REG_ADDR_ACCEL_CONFIG, 0x00);
+    _i2c_write_byte(MPU9250_DEV_ADDR, MPU9250_REG_ADDR_GYRO_CONFIG,  0x00);
+    vTaskDelay(25);  // Delay a while to let the device stabilize
+
+    // Retrieve accelerometer and gyro factory Self-Test Code from USR_Reg
+    _i2c_read(MPU9250_DEV_ADDR, MPU9250_REG_ADDR_SELF_TEST_X_ACCEL, &selfTest[0], 3);
+    _i2c_read(MPU9250_DEV_ADDR, MPU9250_REG_ADDR_SELF_TEST_X_GYRO, &selfTest[3], 3);
+
+    for(ii = 0; ii < 6; ii++) {
+        factoryTrim[ii] = fix16_one;
+        /* Power calculation: power(1.01, selfTest[ii] - 1) */
+        for(int jj = 0; jj < (selfTest[ii] - 1); jj++) {
+            factoryTrim[ii] = fix16_mul(factoryTrim[ii], Q16_1_01);
+        }
+        factoryTrim[ii] = fix16_mul((2620 << 16), factoryTrim[ii]);
+    }
+
+    for(ii = 0; ii < 3; ii++) {
+        aTrimDelta[ii] = fix16_div((aSTAvg[ii] - aAvg[ii]) << 16, factoryTrim[ii]);
+        aTrimDelta[ii] = (100 * aTrimDelta[ii]) - (100 << 16);
+        gTrimDelta[ii] = fix16_div((gSTAvg[ii] - gAvg[ii]) << 16, factoryTrim[ii + 3]);
+        gTrimDelta[ii] = (100 * gTrimDelta[ii]) - (100 << 16);
+    }
+#if 1
+    ESP_LOGI(TAG,"A:(%d, %d, %d) G: (%d, %d, %d)",
+            aAvg[0], aAvg[1], aAvg[2],
+            gAvg[0], gAvg[1], gAvg[2]);
+    ESP_LOGI(TAG,"ST A:(%d, %d, %d) ST G: (%d, %d, %d)",
+            aSTAvg[0], aSTAvg[1], aSTAvg[2],
+            gSTAvg[0], gSTAvg[1], gSTAvg[2]);
+    ESP_LOGI(TAG,"Trim accel:(%d, %d, %d) Trim gyro: (%d, %d, %d)",
+            selfTest[0], selfTest[1], selfTest[2],
+            selfTest[3], selfTest[4], selfTest[5]);
+    ESP_LOGI(TAG, "Accel Trim Change: %f%%, %f%%, %f%%",
+            aTrimDelta[0] / 65536.0f,
+            aTrimDelta[1] / 65536.0f,
+            aTrimDelta[2] / 65536.0f);
+    ESP_LOGI(TAG, "Gyro Trim Change: %f%%, %f%%, %f%%",
+            gTrimDelta[0] / 65536.0f,
+            gTrimDelta[1] / 65536.0f,
+            gTrimDelta[2] / 65536.0f);
+#endif
+}
+
 static void _mpu9250_task(void *vArg)
 {
     uint32_t i;
@@ -108,6 +221,11 @@ static void _mpu9250_task(void *vArg)
         ESP_LOGE(TAG, "MPU9250 not found.");
         vTaskSuspend(NULL);
     }
+
+    /* Self Test */
+    _i2c_write_byte(MPU9250_DEV_ADDR, MPU9250_REG_ADDR_PWR_MGMT_1, 0x80);
+    vTaskDelay(100);
+    _mpu9250_selftest();
 
     /* Init main chip */
     for(i = 0; init_conf[i][0] != 0xFF; i++) {

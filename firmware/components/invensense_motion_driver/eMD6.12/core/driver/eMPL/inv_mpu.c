@@ -118,17 +118,20 @@ static inline int reg_int_cb(struct int_param_s *int_param)
 #elif defined(MOTION_DRIVER_TARGET_ESP32)
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "esp_log.h"
+#include "esp_err.h"
 #include "hal_i2c.h"
 
-#define i2c_write(a, b, c, d)   esp32_i2c_write
-#define i2c_read(a, b, c, d)    esp32_i2c_read
-#define delay_ms                vTaskDelay
+static const char *TAG = "inv_mpu";
+#define i2c_write(a, b, c, d)   esp32_i2c_write(a, b, c, d)
+#define i2c_read(a, b, c, d)    esp32_i2c_read(a, b, c, d)
+#define delay_ms(x)             vTaskDelay(x)
 #define get_ms(x)               do { \
                                     *x = xTaskGetTickCount(); \
                                 } while(0)
-#define log_i
-#define log_e
-#define min(a,b)
+#define log_i(fmt, ...)     ESP_LOGI(TAG, fmt, ##__VA_ARGS__)
+#define log_e(fmt, ...)     ESP_LOGE(TAG, fmt, ##__VA_ARGS__)
+#define min(a,b)            ((a<b)?a:b)
 
 #else
 #error  Gyro driver is missing the system layer implementations.
@@ -786,9 +789,11 @@ int mpu_init(struct int_param_s *int_param)
     if (mpu_configure_fifo(0))
         return -1;
 
-#ifndef EMPL_TARGET_STM32F4    
+#ifndef EMPL_TARGET_STM32F4
+#ifndef MOTION_DRIVER_TARGET_ESP32
     if (int_param)
         reg_int_cb(int_param);
+#endif
 #endif
 
 #ifdef AK89xx_SECONDARY
@@ -3299,6 +3304,14 @@ lp_int_restore:
     return 0;
 }
 
+int mpu_get_devId(void)
+{
+    unsigned char id = 0;
+    if (mpu_read_reg(st.reg->who_am_i, &id)) {
+        return -1;
+    }
+    return id;
+}
 /**
  *  @}
  */

@@ -5,18 +5,48 @@
 #include "priorityList.h"
 #include "eMD.h"
 #include "hal_i2c.h"
+#include "inv_mpu.h"
 
 static const char *TAG = "mpu9250";
 
 static TaskHandle_t mpu9250_task_handle;
 static bool bInit = false;
 
+static void _run_self_test(void)
+{
+    uint8_t rawData[6] = {0};
+    int32_t aAvg[3] = {0};
+    uint32_t i;
+
+    mpu_set_sample_rate(1000);
+    mpu_set_lpf(98);
+    mpu_set_gyro_fsr(250);
+    mpu_set_accel_fsr(2);
+
+    for(i = 0; i < 200; i++) {
+
+    }
+}
+
 static void _mpu9250_task(void *vArg)
 {
-    uint32_t i;
-    uint8_t val;
+    struct int_param_s int_param;
+    int id;
+    ESP_LOGI(TAG, "Initializing device...");
+    id = mpu_get_devId();
+    ESP_LOGI(TAG, "Device ID: 0x%02X", mpu_get_devId());
+    if(id != 0x71) {
+        ESP_LOGE(TAG, "MPU9250 not found!");
+        vTaskSuspend(NULL);
+    }
 
-    ESP_LOGI(TAG, "Initializing device.");
+    if(mpu_init(&int_param)) {
+        ESP_LOGE(TAG, "Failed to initialize MPU9250");
+    } else {
+        ESP_LOGI(TAG, "Initialized.");
+    }
+
+    _run_self_test();
 
     /* Chip Init Done */
     bInit = true;
@@ -58,7 +88,7 @@ esp_err_t eMD_Init(void)
         if(pdPASS != xTaskCreatePinnedToCore(
                     _mpu9250_task,            /* the task function */
                     "mpu9250",                /* the name of the task */
-                    2048,                     /* stack size */
+                    4096,                     /* stack size */
                     NULL,                     /* the 'pvParameters' parameter */
                     PRIORITY_MPU9250,         /* FreeRTOS priority */
                     &mpu9250_task_handle,     /* task handle */

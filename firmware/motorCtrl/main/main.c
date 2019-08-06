@@ -52,7 +52,7 @@ void app_main()
     /* initialize MPU9250 */
     mpu9250_init();
 
-    eMD_Init();
+//    eMD_Init();
 
     /* initialize bluetooth SPP */
     bt_bridge_init();
